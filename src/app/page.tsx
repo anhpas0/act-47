@@ -2,7 +2,7 @@
 
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "./api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/authOptions";
 
 // Đây là một Server Component, nó sẽ chạy ở phía server trước khi gửi bất cứ thứ gì về trình duyệt.
 export default async function HomePage() {

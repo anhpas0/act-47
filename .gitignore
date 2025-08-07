@@ -1,0 +1,22 @@
+# File: .gitignore
+
+# Local Environment Variables
+.env.local
+
+# Next.js build output
+.next
+out
+
+# Dependencies
+/node_modules
+
+# Production
+/build
+
+# File database cục bộ (nếu còn dùng)
+settings.json
+
+# Logs, temporary files, etc.
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

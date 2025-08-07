@@ -21,7 +21,8 @@ export async function POST(request: Request) {
       createdAt: new Date(),
     });
     return NextResponse.json({ success: true, message: 'Đăng ký thành công! Vui lòng chờ Admin kích hoạt tài khoản.' });
-  } catch (error) {
+  } catch (err) { // Sửa 'error' thành 'err'
+    console.error("Lỗi khi đăng ký:", err);
     return NextResponse.json({ error: 'Lỗi server' }, { status: 500 });
   }
 }

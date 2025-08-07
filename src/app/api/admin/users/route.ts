@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     if (!userId || !action) return NextResponse.json({ error: 'Thiếu thông tin' }, { status: 400 });
     const client = await clientPromise;
     const db = client.db();
-    const updates: any = {};
+    const updates: { [key: string]: any } = {}; // Định nghĩa kiểu rõ ràng
     if (action === 'activate') {
       if (!plan) return NextResponse.json({ error: 'Cần chọn gói cước' }, { status: 400 });
       updates.status = 'active';
@@ -38,7 +38,8 @@ export async function POST(request: Request) {
     }
     await db.collection("users").updateOne({ _id: new ObjectId(userId) }, { $set: updates });
     return NextResponse.json({ success: true, message: `Đã cập nhật tài khoản.` });
-  } catch (error) {
+  } catch (err) { // Sửa 'error' thành 'err'
+    console.error("Lỗi khi cập nhật user:", err);
     return NextResponse.json({ error: 'Lỗi server' }, { status: 500 });
   }
 }

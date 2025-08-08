@@ -32,7 +32,8 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleUpdateUser = async (userId: string, action: 'activate' | 'deactivate', plan?: string) => {
+  // Hàm handleUpdateUser giờ có thể xử lý cả 'change_plan'
+  const handleUpdateUser = async (userId: string, action: 'activate' | 'deactivate' | 'change_plan', plan?: string) => {
     setStatusMessage('Đang cập nhật...');
     try {
       const res = await axios.post('/api/admin/users', { userId, action, plan });
@@ -43,13 +44,58 @@ export default function AdminDashboard() {
     }
   };
   
-  // Hàm định dạng ngày tháng cho dễ đọc
   const formatDate = (dateString?: string) => {
       if (!dateString) return "N/A";
       return new Date(dateString).toLocaleDateString('vi-VN', {
           day: '2-digit', month: '2-digit', year: 'numeric'
       });
   }
+
+  // Component mới cho các hành động của Admin
+  const AdminActions = ({ user }: { user: User }) => {
+    if (user.status === 'pending') {
+      return (
+        <select 
+            onChange={(e) => { if(e.target.value) handleUpdateUser(user._id, 'activate', e.target.value) }} 
+            defaultValue="" 
+            className="p-1 border rounded text-xs"
+        >
+            <option value="" disabled>Kích hoạt với gói...</option>
+            <option value="1_month">1 Tháng</option>
+            <option value="3_months">3 Tháng</option>
+            <option value="6_months">6 Tháng</option>
+            <option value="1_year">1 Năm</option>
+            <option value="lifetime">Vĩnh viễn</option>
+        </select>
+      );
+    }
+    if (user.status === 'active') {
+      return (
+        <div className="flex items-center gap-2">
+            <select 
+                onChange={(e) => { if(e.target.value) handleUpdateUser(user._id, 'change_plan', e.target.value) }}
+                defaultValue={user.plan}
+                className="p-1 border rounded text-xs"
+            >
+                <option value="1_month">1 Tháng</option>
+                <option value="3_months">3 Tháng</option>
+                <option value="6_months">6 Tháng</option>
+                <option value="1_year">1 Năm</option>
+                <option value="lifetime">Vĩnh viễn</option>
+            </select>
+            <button onClick={() => handleUpdateUser(user._id, 'deactivate')} className="text-red-600 hover:text-red-900 text-xs font-semibold">Hủy</button>
+        </div>
+      );
+    }
+     if (user.status === 'inactive') {
+      return (
+        <button onClick={() => handleUpdateUser(user._id, 'activate', user.plan || '1_month')} className="text-green-600 hover:text-green-900 text-xs font-semibold">
+          Kích hoạt lại
+        </button>
+      );
+    }
+    return null;
+  };
 
   return (
     <div>
@@ -75,22 +121,7 @@ export default function AdminDashboard() {
                   <td className="px-6 py-4 whitespace-nowrap">{user.plan || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.plan === 'lifetime' ? 'Vĩnh viễn' : formatDate(user.planExpiresAt)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    {user.status === 'pending' && (
-                        <select onChange={(e) => { if(e.target.value) handleUpdateUser(user._id, 'activate', e.target.value) }} defaultValue="" className="p-1 border rounded text-xs">
-                            <option value="" disabled>Kích hoạt với gói...</option>
-                            <option value="1_month">1 Tháng</option>
-                            <option value="3_months">3 Tháng</option>
-                            <option value="6_months">6 Tháng</option>
-                            <option value="1_year">1 Năm</option>
-                            <option value="lifetime">Vĩnh viễn</option>
-                        </select>
-                    )}
-                    {user.status === 'active' && (
-                        <button onClick={() => handleUpdateUser(user._id, 'deactivate')} className="text-red-600 hover:text-red-900">Hủy kích hoạt</button>
-                    )}
-                     {user.status === 'inactive' && (
-                        <button onClick={() => handleUpdateUser(user._id, 'activate', user.plan || '1_month')} className="text-green-600 hover:text-green-900">Kích hoạt lại</button>
-                    )}
+                    <AdminActions user={user} />
                   </td>
                 </tr>
               ))

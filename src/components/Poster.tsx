@@ -29,7 +29,7 @@ export default function Poster({ session }: { session: Session }) {
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [description, setDescription] = useState('');
   const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
-  const [textPrompt, setTextPrompt] = useState(''); // Prompt để tạo mô tả từ text
+  const [textPrompt, setTextPrompt] = useState(''); // Prompt để tạo caption từ text
 
   // States chung cho giao diện và hẹn lịch
   const [status, setStatus] = useState('');
@@ -116,36 +116,36 @@ export default function Poster({ session }: { session: Session }) {
         for (let i = 0; i < byteString.length; i++) { ia[i] = byteString.charCodeAt(i); }
         imageToSend = new File([ab], "ai_generated_image.png", { type: 'image/png' });
     }
-    if (!imageToSend) { setStatus("Vui lòng chọn một ảnh để tạo mô tả."); return; }
+    if (!imageToSend) { setStatus("Vui lòng chọn một ảnh để tạo caption."); return; }
     
     setIsGeneratingDesc(true);
-    setStatus(`✍️ Gemini đang viết mô tả TỪ ẢNH...`);
+    setStatus(`✍️ AI đang viết caption TỪ ẢNH...`);
     const formData = new FormData();
     formData.append('image', imageToSend);
     try {
         const res = await axios.post('/api/poster/generate-description', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
-        const suggestions = res.data.description.split('\n').filter((line: string) => line.trim().startsWith('Gợi ý mô tả'));
+        const suggestions = res.data.description.split('\n').filter((line: string) => line.trim().startsWith('Gợi ý caption'));
         setDescription(suggestions.join('\n'));
-        setStatus("✅ Đã tạo mô tả thành công!");
-    } catch (error) { setStatus("❌ Lỗi khi tạo mô tả từ ảnh."); }
+        setStatus("✅ Đã tạo caption thành công!");
+    } catch (error) { setStatus("❌ Lỗi khi tạo caption từ ảnh."); }
     finally { setIsGeneratingDesc(false); }
   };
   
   const handleGenerateDescriptionFromText = async () => {
-    if (!textPrompt) { setStatus("Vui lòng nhập ý tưởng để tạo mô tả."); return; }
+    if (!textPrompt) { setStatus("Vui lòng nhập ý tưởng để tạo caption."); return; }
     setIsGeneratingDesc(true);
-    setStatus("✍️ Gemini đang viết mô tả TỪ Ý TƯỞNG...");
+    setStatus("✍️ AI đang viết caption TỪ Ý TƯỞNG...");
     try {
         const res = await axios.post('/api/poster/generate-description', 
             { prompt_text: textPrompt },
             { headers: { 'Content-Type': 'application/json' } }
         );
-        const suggestions = res.data.description.split('\n').filter((line: string) => line.trim().startsWith('Gợi ý mô tả'));
+        const suggestions = res.data.description.split('\n').filter((line: string) => line.trim().startsWith('Gợi ý caption'));
         setDescription(suggestions.join('\n'));
-        setStatus("✅ Đã tạo mô tả thành công!");
-    } catch (error) { setStatus("❌ Lỗi khi tạo mô tả từ ý tưởng."); }
+        setStatus("✅ Đã tạo caption thành công!");
+    } catch (error) { setStatus("❌ Lỗi khi tạo caption từ ý tưởng."); }
     finally { setIsGeneratingDesc(false); }
   };
 
@@ -153,7 +153,7 @@ export default function Poster({ session }: { session: Session }) {
     e.preventDefault();
     const hasImage = imageFiles.length > 0 || !!generatedImage;
     if (!description || !selectedPage) {
-        setStatus('Cần chọn Fanpage và có mô tả để đăng bài.');
+        setStatus('Cần chọn Fanpage và có caption để đăng bài.');
         return;
     }
     if (!hasImage) {
@@ -212,7 +212,7 @@ export default function Poster({ session }: { session: Session }) {
           <summary className="flex justify-between items-center font-semibold cursor-pointer list-none">
             <h2 className="text-xl text-gray-900">Cài đặt Fanpage & Footer</h2>
             <div className="flex items-center">
-              <span className="text-sm text-blue-600 mr-2 group-open:hidden">Nhấn để mở rộng</span>
+              <span className="text-sm text-blue-600 mr-2 group-open:hidden">Nhấn để thêm footer</span>
               <span className="text-sm text-gray-500 mr-2 hidden group-open:inline">Nhấn để thu gọn</span>
               <svg className="w-5 h-5 text-gray-500 transition-transform duration-300 group-open:rotate-180" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -265,7 +265,7 @@ export default function Poster({ session }: { session: Session }) {
                 <div className="p-6 bg-white border rounded-lg shadow-sm">
                     <h2 className="text-xl font-semibold mb-3 text-gray-900">1. Tạo hoặc Tải lên Hình ảnh</h2>
                     <div className="p-4 bg-gray-50 rounded-lg">
-                        <h3 className="font-semibold mb-2 text-gray-800">Tạo ảnh bằng AI (DALL-E)</h3>
+                        <h3 className="font-semibold mb-2 text-gray-800">Tạo ảnh bằng AI</h3>
                         <div className="flex gap-2">
                             <input type="text" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Nhập ý tưởng của bạn, ví dụ: một chú mèo phi hành gia..." className="flex-grow p-2 border rounded-md"/>
                             <button type="button" onClick={handleGenerateImage} disabled={isGeneratingImage} className="px-4 py-2 font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:bg-purple-300">
@@ -275,16 +275,16 @@ export default function Poster({ session }: { session: Session }) {
                     </div>
                     <div className="text-center my-4 font-semibold text-gray-500">HOẶC</div>
                     <div className="p-4 bg-gray-50 rounded-lg">
-                        <h3 className="font-semibold mb-2 text-gray-800">Tải ảnh lên từ máy tính</h3>
+                        <h3 className="font-semibold mb-2 text-gray-800">Tải ảnh lên</h3>
                         <input type="file" accept="image/*" multiple onChange={handleImageChange} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
                     </div>
                 </div>
 
                 <div className="p-6 bg-white border rounded-lg shadow-sm">
-                    <h2 className="text-xl font-semibold mb-3 text-gray-900">2. Tạo Mô tả & Nội dung</h2>
+                    <h2 className="text-xl font-semibold mb-3 text-gray-900">2. Tạo caption & Nội dung</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-4">
-                            <h3 className="font-semibold text-gray-800">Lựa chọn 1: Tạo mô tả từ ảnh</h3>
+                            <h3 className="font-semibold text-gray-800">Lựa chọn 1: Tạo caption từ ảnh</h3>
                             <div className="p-4 bg-gray-50 rounded-lg">
                                 <div className="w-full aspect-square border-2 border-dashed rounded-lg flex items-center justify-center bg-gray-100 overflow-hidden relative mb-4">
                                 {generatedImage ? (
@@ -297,7 +297,7 @@ export default function Poster({ session }: { session: Session }) {
                                 </div>
                                 {imagePreviews.length > 1 && (
                                     <div>
-                                        <h4 className="text-sm font-medium mb-2 text-gray-700">Chọn ảnh để tạo mô tả:</h4>
+                                        <h4 className="text-sm font-medium mb-2 text-gray-700">Chọn ảnh để tạo caption:</h4>
                                         <div className="flex gap-2 overflow-x-auto p-2 bg-gray-100 rounded-lg">
                                         {imagePreviews.map((src, index) => (
                                             <button key={index} type="button" onClick={() => setSelectedImageIndex(index)} className={`flex-shrink-0 w-16 h-16 relative border-2 rounded-md overflow-hidden transition-all ${selectedImageIndex === index ? 'border-blue-500 ring-2 ring-blue-300' : 'border-transparent'}`}>
@@ -308,13 +308,13 @@ export default function Poster({ session }: { session: Session }) {
                                     </div>
                                 )}
                                 <button type="button" onClick={handleGenerateDescriptionFromImage} disabled={isGeneratingDesc || (!generatedImage && imageFiles.length === 0)} className="w-full mt-4 px-4 py-2 font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:bg-green-300">
-                                    Tạo mô tả từ Ảnh đã chọn
+                                    Tạo caption từ Ảnh đã chọn
                                 </button>
                             </div>
 
                             <div className="text-center my-2 font-semibold text-gray-500">HOẶC</div>
 
-                            <h3 className="font-semibold text-gray-800">Lựa chọn 2: Tạo mô tả từ ý tưởng</h3>
+                            <h3 className="font-semibold text-gray-800">Lựa chọn 2: Tạo caption từ ý tưởng</h3>
                             <div className="p-4 bg-gray-50 rounded-lg">
                                 <div className="flex gap-2">
                                     <input type="text" value={textPrompt} onChange={(e) => setTextPrompt(e.target.value)} placeholder="Ví dụ: lợi ích của việc đọc sách..." className="flex-grow p-2 border rounded-md"/>
@@ -325,7 +325,7 @@ export default function Poster({ session }: { session: Session }) {
 
                         <div className="space-y-4">
                             <h3 className="font-semibold text-gray-800">Nội dung bài viết (Chỉnh sửa tại đây)</h3>
-                            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Mô tả sẽ được tạo và hiển thị ở đây..." rows={20} className="w-full p-2 border rounded-md bg-white"/>
+                            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="caption sẽ được tạo và hiển thị ở đây..." rows={20} className="w-full p-2 border rounded-md bg-white"/>
                         </div>
                     </div>
                 </div>

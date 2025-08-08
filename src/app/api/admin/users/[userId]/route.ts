@@ -5,8 +5,8 @@ import clientPromise from '@/lib/mongodb';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
 import { ObjectId } from 'mongodb';
+import { TRouteContext } from '@/types'; // === IMPORT KIỂU MỚI ===
 
-// Hàm helper để kiểm tra quyền Admin
 async function isAdmin() {
   const session = await getServerSession(authOptions);
   return session && (session.user as any)?.role === 'admin';
@@ -15,17 +15,13 @@ async function isAdmin() {
 // Hàm DELETE để xóa một người dùng
 export async function DELETE(
     request: NextRequest,
-    // === SỬA LỖI QUAN TRỌNG NHẤT LÀ Ở ĐÂY ===
-    // Định nghĩa kiểu dữ liệu trực tiếp cho tham số thứ hai
-    // mà không cần tạo interface riêng.
-    { params }: { params: { userId: string } }
+    context: TRouteContext // === SỬ DỤNG KIỂU ĐÃ IMPORT ===
 ) {
     if (!(await isAdmin())) {
         return NextResponse.json({ error: 'Không có quyền truy cập' }, { status: 403 });
     }
 
-    // Lấy userId từ params đã được destructured (phá vỡ cấu trúc)
-    const { userId } = params;
+    const { userId } = context.params;
     if (!userId) {
         return NextResponse.json({ error: 'Thiếu User ID' }, { status: 400 });
     }

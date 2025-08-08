@@ -4,7 +4,6 @@ import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export async function POST(request: Request) {
-  // === KIỂM TRA API KEY NGAY TỪ ĐẦU ===
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     console.error("Lỗi nghiêm trọng trên server: Biến môi trường GEMINI_API_KEY chưa được thiết lập.");
@@ -20,16 +19,9 @@ export async function POST(request: Request) {
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
       const imageFile = formData.get('image') as File | null;
-      if (!imageFile) {
-        return NextResponse.json({ error: 'FormData không chứa file ảnh.' }, { status: 400 });
-      }
-      
-      // Kiểm tra kích thước file (ví dụ giới hạn 4MB)
-      if (imageFile.size > 4 * 1024 * 1024) {
-          return NextResponse.json({ error: 'Kích thước ảnh không được vượt quá 4MB.' }, { status: 413 });
-      }
+      if (!imageFile) return NextResponse.json({ error: 'FormData không chứa file ảnh.' }, { status: 400 });
 
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
       const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
       const imagePart = { inlineData: { data: imageBuffer.toString('base64'), mimeType: imageFile.type } };
       const promptForImage = "Dựa vào hình ảnh này, hãy tạo ra 3 gợi ý mô tả ngắn gọn, hấp dẫn cho bài đăng mạng xã hội. Mỗi gợi ý trên một dòng và bắt đầu bằng 'Gợi ý mô tả X:'. Chỉ trả lời bằng tiếng Việt.";
@@ -39,11 +31,11 @@ export async function POST(request: Request) {
     // Xử lý yêu cầu dạng JSON (chỉ có text)
     else if (contentType.includes("application/json")) {
       const { prompt_text } = await request.json();
-      if (!prompt_text) {
-        return NextResponse.json({ error: 'Yêu cầu JSON không chứa prompt_text.' }, { status: 400 });
-      }
+      if (!prompt_text) return NextResponse.json({ error: 'Yêu cầu JSON không chứa prompt_text.' }, { status: 400 });
 
-      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      // === ĐÂY LÀ DÒNG ĐÃ ĐƯỢC SỬA LỖI ===
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      
       const promptForText = `Dựa vào ý tưởng sau: "${prompt_text}", hãy tạo ra 3 gợi ý mô tả ngắn gọn, hấp dẫn cho một bài đăng trên mạng xã hội. Mỗi gợi ý trên một dòng và bắt đầu bằng 'Gợi ý mô tả X:'. Chỉ trả lời bằng tiếng Việt.`;
       const result = await model.generateContent(promptForText);
       generatedText = result.response.text();
@@ -59,7 +51,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ description: generatedText });
 
   } catch (error: any) {
-    // Ghi lại toàn bộ lỗi ra log của Vercel để debug
     console.error("Lỗi chi tiết khi gọi đến Gemini API:", error);
     return NextResponse.json({ error: `Lỗi từ Gemini: ${error.message || 'Lỗi không xác định'}` }, { status: 500 });
   }

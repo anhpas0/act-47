@@ -1,19 +1,22 @@
 "use client";
 import { useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation'; // Import useRouter
 
-// Định nghĩa cấu trúc cho một gói cước, thêm thuộc tính 'qrCodeUrl'
 interface Plan {
     id: string;
     name: string;
     price: string;
     description: string;
-    qrCodeUrl: string; // Đường dẫn đến file ảnh QR trong thư mục /public
+    qrCodeUrl?: string; // Tùy chọn cho gói dùng thử
 }
 
-// Cập nhật danh sách các gói cước với đường dẫn đến ảnh QR tương ứng
+// Cập nhật danh sách các gói cước
 const plans: Plan[] = [
-    { id: '1_month', name: 'Gói 1 Tháng', price: '59.000đ', description: 'Phù hợp để trải nghiệm.', qrCodeUrl: '/qr/1_month.png' },
+    // === GÓI DÙNG THỬ MỚI ===
+    { id: 'free_trial', name: 'Gói Dùng thử', price: '0đ', description: 'Liên hệ Zalo: 0941.280.777', qrCodeUrl: '' }, 
+    // === CÁC GÓI CÒN LẠI ===
+    { id: '1_month', name: 'Gói 1 Tháng', price: '59.000đ', description: 'Phù hợp để trải nghiệm các tính năng.', qrCodeUrl: '/qr/1_month.png' },
     { id: '3_months', name: 'Gói 3 Tháng', price: '149.000đ', description: 'Tiết kiệm hơn.', qrCodeUrl: '/qr/3_months.png' },
     { id: '6_months', name: 'Gói 6 Tháng', price: '299.000đ', description: 'Lựa chọn tối ưu.', qrCodeUrl: '/qr/6_months.png' },
     { id: '1_year', name: 'Gói 1 Năm', price: '499.000đ', description: 'Cam kết dài hạn.', qrCodeUrl: '/qr/1_year.png' },
@@ -25,6 +28,7 @@ export default function SubscriptionPage({ username }: { username: string }) {
     const [showQR, setShowQR] = useState(false);
     const [inputUsername, setInputUsername] = useState(username);
     const [copySuccess, setCopySuccess] = useState('');
+    const router = useRouter(); // Khởi tạo router
 
     const finalUsername = inputUsername.trim() || username.trim();
     const paymentContent = selectedPlan ? `${finalUsername} kich hoat goi ${selectedPlan.id}`.replace(/_/g, '') : '';
@@ -34,7 +38,15 @@ export default function SubscriptionPage({ username }: { username: string }) {
             alert('Vui lòng chọn một gói cước.');
             return;
         }
-        setShowQR(true);
+        // Nếu là gói dùng thử, bỏ qua bước QR code
+        if (selectedPlan.id === 'free_trial') {
+            alert("Bạn đã chọn gói dùng thử. Vui lòng liên hệ Admin để kích hoạt tài khoản.");
+            // Chuyển hướng về trang login sau khi thông báo
+            router.push('/login');
+        } else {
+            // Hiển thị QR code cho các gói có trả phí
+            setShowQR(true);
+        }
     };
 
     const handleCopyContent = () => {
@@ -46,6 +58,12 @@ export default function SubscriptionPage({ username }: { username: string }) {
         setCopySuccess('Đã sao chép!');
         setTimeout(() => setCopySuccess(''), 2000);
     };
+
+    const handlePaymentConfirmation = () => {
+        // Sau khi người dùng xác nhận đã chuyển khoản, chuyển hướng về trang đăng nhập
+        alert("Cảm ơn bạn đã thanh toán. Vui lòng đăng nhập lại sau khi tài khoản được kích hoạt.");
+        router.push('/login');
+    };
     
     return (
         <div className="min-h-screen-minus-header bg-gray-50 flex flex-col items-center justify-center p-4">
@@ -55,9 +73,7 @@ export default function SubscriptionPage({ username }: { username: string }) {
                     <div className="bg-white p-8 rounded-xl shadow-lg text-center">
                         <h1 className="text-3xl font-bold text-gray-800">Chọn gói cước của bạn</h1>
                         <p className="mt-2 text-gray-600">
-                            {username ? `Tài khoản (${username}) đang chờ kích hoạt.` : "Cảm ơn bạn đã đăng ký!"}
-                            <br/>
-                            Vui lòng chọn một gói cước và thanh toán để được kích hoạt.
+                            Vui lòng chọn và thanh toán một gói cước để được kích hoạt.
                         </p>
                         
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
@@ -79,7 +95,7 @@ export default function SubscriptionPage({ username }: { username: string }) {
                             disabled={!selectedPlan}
                             className="mt-8 px-10 py-3 text-lg font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400"
                         >
-                            Xác nhận và Thanh toán
+                            Xác nhận
                         </button>
                     </div>
                 ) : (
@@ -89,15 +105,15 @@ export default function SubscriptionPage({ username }: { username: string }) {
                          <p className="mt-2 text-gray-600 mb-6">Vui lòng quét mã QR tương ứng với gói cước bạn đã chọn. Số tiền đã được điền sẵn.</p>
                          
                          <div className="flex flex-col md:flex-row gap-8 items-center justify-center">
-                            {/* === THAY ĐỔI QUAN TRỌNG NHẤT LÀ Ở ĐÂY === */}
-                            {selectedPlan && (
+                            {/* Hiển thị QR Code động, chỉ hiển thị nếu có QR code */}
+                            {selectedPlan?.qrCodeUrl && (
                                 <Image 
                                     src={selectedPlan.qrCodeUrl} 
                                     alt={`Mã QR cho ${selectedPlan.name}`} 
                                     width={250} 
                                     height={250} 
                                     className="border rounded-lg shadow-sm"
-                                    priority // Tải ảnh này ưu tiên
+                                    priority
                                 />
                             )}
                             <div className="text-left p-4 bg-gray-50 rounded-lg border w-full md:w-auto">
@@ -135,7 +151,17 @@ export default function SubscriptionPage({ username }: { username: string }) {
                                 </div>
                             </div>
                          </div>
-                         <button onClick={() => setShowQR(false)} className="mt-8 text-sm text-gray-600 hover:underline">
+                         
+                         {/* === NÚT XÁC NHẬN ĐÃ CHUYỂN KHOẢN MỚI === */}
+                         <button
+                            onClick={handlePaymentConfirmation}
+                            className="mt-8 px-10 py-3 text-lg font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700"
+                         >
+                            Xác nhận đã chuyển khoản
+                         </button>
+                         <p className="mt-2 text-sm text-gray-500">Nếu thời gian kích hoạt quá lâu, liên hệ Zalo: 0941.280.777</p>
+
+                         <button onClick={() => setShowQR(false)} className="mt-4 text-sm text-gray-600 hover:underline">
                             ← Quay lại chọn gói khác
                          </button>
                     </div>

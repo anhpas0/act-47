@@ -2,33 +2,30 @@
 import { useState } from 'react';
 import Image from 'next/image';
 
-// Định nghĩa cấu trúc cho một gói cước
+// Định nghĩa cấu trúc cho một gói cước, thêm thuộc tính 'qrCodeUrl'
 interface Plan {
-    id: string; // Key để gửi về backend, ví dụ: '1_month'
+    id: string;
     name: string;
     price: string;
     description: string;
+    qrCodeUrl: string; // Đường dẫn đến file ảnh QR trong thư mục /public
 }
 
-// Danh sách các gói cước - bạn có thể dễ dàng thay đổi giá và mô tả ở đây
+// Cập nhật danh sách các gói cước với đường dẫn đến ảnh QR tương ứng
 const plans: Plan[] = [
-    { id: '1_month', name: 'Gói 1 Tháng', price: '99.000đ', description: 'Phù hợp để trải nghiệm các tính năng.' },
-    { id: '3_months', name: 'Gói 3 Tháng', price: '279.000đ', description: 'Tiết kiệm hơn cho người dùng thường xuyên.' },
-    { id: '6_months', name: 'Gói 6 Tháng', price: '549.000đ', description: 'Lựa chọn tối ưu cho doanh nghiệp nhỏ.' },
-    { id: '1_year', name: 'Gói 1 Năm', price: '999.000đ', description: 'Cam kết dài hạn, tiết kiệm tối đa.' },
-    { id: 'lifetime', name: 'Gói Vĩnh viễn', price: '2.999.000đ', description: 'Sử dụng mãi mãi, không lo gia hạn.' },
+    { id: '1_month', name: 'Gói 1 Tháng', price: '59.000đ', description: 'Phù hợp để trải nghiệm.', qrCodeUrl: '/qr/1_month.png' },
+    { id: '3_months', name: 'Gói 3 Tháng', price: '149.000đ', description: 'Tiết kiệm hơn.', qrCodeUrl: '/qr/3_months.png' },
+    { id: '6_months', name: 'Gói 6 Tháng', price: '299.000đ', description: 'Lựa chọn tối ưu.', qrCodeUrl: '/qr/6_months.png' },
+    { id: '1_year', name: 'Gói 1 Năm', price: '499.000đ', description: 'Cam kết dài hạn.', qrCodeUrl: '/qr/1_year.png' },
+    { id: 'lifetime', name: 'Gói Vĩnh viễn', price: '999.000đ', description: 'Sử dụng mãi mãi.', qrCodeUrl: '/qr/lifetime.png' },
 ];
 
-// Component nhận 'username' từ trang cha (page.tsx)
 export default function SubscriptionPage({ username }: { username: string }) {
     const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
     const [showQR, setShowQR] = useState(false);
-    
-    // State để người dùng có thể tự nhập username nếu chưa được truyền vào
     const [inputUsername, setInputUsername] = useState(username);
     const [copySuccess, setCopySuccess] = useState('');
 
-    // Nội dung chuyển khoản sẽ ưu tiên lấy từ inputUsername, nếu không có thì mới lấy từ prop
     const finalUsername = inputUsername.trim() || username.trim();
     const paymentContent = selectedPlan ? `${finalUsername} kich hoat goi ${selectedPlan.id}`.replace(/_/g, '') : '';
 
@@ -37,7 +34,7 @@ export default function SubscriptionPage({ username }: { username: string }) {
             alert('Vui lòng chọn một gói cước.');
             return;
         }
-        setShowQR(true); // Chỉ cần hiển thị khu vực QR code
+        setShowQR(true);
     };
 
     const handleCopyContent = () => {
@@ -47,7 +44,7 @@ export default function SubscriptionPage({ username }: { username: string }) {
         };
         navigator.clipboard.writeText(paymentContent);
         setCopySuccess('Đã sao chép!');
-        setTimeout(() => setCopySuccess(''), 2000); // Ẩn thông báo sau 2 giây
+        setTimeout(() => setCopySuccess(''), 2000);
     };
     
     return (
@@ -58,12 +55,9 @@ export default function SubscriptionPage({ username }: { username: string }) {
                     <div className="bg-white p-8 rounded-xl shadow-lg text-center">
                         <h1 className="text-3xl font-bold text-gray-800">Chọn gói cước của bạn</h1>
                         <p className="mt-2 text-gray-600">
-                            {username 
-                                ? `Tài khoản của bạn (${username}) đang chờ kích hoạt.` 
-                                : "Cảm ơn bạn đã đăng ký!"
-                            }
+                            {username ? `Tài khoản (${username}) đang chờ kích hoạt.` : "Cảm ơn bạn đã đăng ký!"}
                             <br/>
-                            Vui lòng chọn một gói cước và thực hiện thanh toán để được kích hoạt.
+                            Vui lòng chọn một gói cước và thanh toán để được kích hoạt.
                         </p>
                         
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
@@ -71,10 +65,7 @@ export default function SubscriptionPage({ username }: { username: string }) {
                                 <div 
                                     key={plan.id}
                                     onClick={() => setSelectedPlan(plan)}
-                                    className={`p-6 border-2 rounded-lg cursor-pointer transition-all text-center
-                                                ${selectedPlan?.id === plan.id 
-                                                    ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-200' 
-                                                    : 'border-gray-200 bg-white hover:border-gray-400'}`}
+                                    className={`p-6 border-2 rounded-lg cursor-pointer transition-all text-center ${selectedPlan?.id === plan.id ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-200' : 'border-gray-200 bg-white hover:border-gray-400'}`}
                                 >
                                     <h3 className="text-xl font-semibold text-gray-900">{plan.name}</h3>
                                     <p className="text-3xl font-bold my-4 text-blue-600">{plan.price}</p>
@@ -95,14 +86,23 @@ export default function SubscriptionPage({ username }: { username: string }) {
                     // GIAO DIỆN HIỂN THỊ QR CODE
                     <div className="bg-white p-8 rounded-xl shadow-lg text-center animate-fade-in">
                          <h1 className="text-2xl font-bold text-green-600">Bước cuối cùng: Thanh toán</h1>
-                         <p className="mt-2 text-gray-600 mb-6">Vui lòng quét mã QR dưới đây để thanh toán. Tài khoản sẽ được kích hoạt ngay sau khi Admin xác nhận.</p>
+                         <p className="mt-2 text-gray-600 mb-6">Vui lòng quét mã QR tương ứng với gói cước bạn đã chọn. Số tiền đã được điền sẵn.</p>
                          
                          <div className="flex flex-col md:flex-row gap-8 items-center justify-center">
-                            <Image src="/payment-qr.png" alt="Mã QR thanh toán" width={250} height={250} className="border rounded-lg shadow-sm" />
+                            {/* === THAY ĐỔI QUAN TRỌNG NHẤT LÀ Ở ĐÂY === */}
+                            {selectedPlan && (
+                                <Image 
+                                    src={selectedPlan.qrCodeUrl} 
+                                    alt={`Mã QR cho ${selectedPlan.name}`} 
+                                    width={250} 
+                                    height={250} 
+                                    className="border rounded-lg shadow-sm"
+                                    priority // Tải ảnh này ưu tiên
+                                />
+                            )}
                             <div className="text-left p-4 bg-gray-50 rounded-lg border w-full md:w-auto">
                                 <h3 className="font-semibold mb-2 text-gray-800">Thông tin chuyển khoản:</h3>
                                 
-                                {/* Thêm ô nhập username nếu chưa có (người dùng vừa đăng ký) */}
                                 {!username && (
                                     <div className="mb-4">
                                         <label className="block text-sm font-medium mb-1 text-gray-700">Vui lòng nhập lại Tên đăng nhập của bạn:</label>
@@ -117,6 +117,7 @@ export default function SubscriptionPage({ username }: { username: string }) {
                                 )}
 
                                 <div className="space-y-2">
+                                    <p><strong>Gói đã chọn:</strong> <span className="font-bold">{selectedPlan?.name}</span></p>
                                     <p><strong>Số tiền:</strong> <span className="text-red-600 font-bold text-lg">{selectedPlan?.price}</span></p>
                                     <p><strong>Nội dung chuyển khoản (bắt buộc):</strong></p>
                                     <div className="mt-1 p-2 bg-gray-200 rounded font-mono text-sm break-all">

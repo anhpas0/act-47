@@ -1,73 +1,74 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { signIn } from "next-auth/react";
 import type { Session } from "next-auth";
-import Poster from "./Poster";
-import axios from 'axios';
+import { signOut, signIn } from "next-auth/react";
+import Poster from "./Poster"; // Import Poster component
+import { useEffect, useState } from "react";
+import axios from "axios";
 
-interface ConnectionStatus {
-  isConnected: boolean;
-  provider?: string;
-  userName?: string;
+// Định nghĩa lại interface Account để rõ ràng hơn
+interface ConnectedAccount {
+    provider: string;
 }
 
 export default function UserDashboard({ session }: { session: Session }) {
-  // State mới để lưu trạng thái kết nối lấy từ API
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+    const [hasFacebookConnection, setHasFacebookConnection] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
-  // useEffect sẽ gọi API mới để kiểm tra trạng thái
-  useEffect(() => {
-    const fetchConnectionStatus = async () => {
-      setIsLoading(true);
-      try {
-        // Gọi đến API route mới mà chúng ta vừa tạo
-        const res = await axios.get<ConnectionStatus>('/api/user/accounts');
-        setConnectionStatus(res.data);
-      } catch (error) {
-        console.error("Lỗi khi kiểm tra trạng thái kết nối", error);
-        // Mặc định là chưa kết nối nếu có lỗi
-        setConnectionStatus({ isConnected: false });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    useEffect(() => {
+        const checkConnection = async () => {
+            setIsLoading(true);
+            try {
+                // Chúng ta vẫn cần API này để biết có nên hiển thị nút "Kết nối" hay không
+                const res = await axios.get('/api/user/accounts');
+                const facebookAccount = res.data.find((acc: ConnectedAccount) => acc.provider === 'facebook');
+                setHasFacebookConnection(!!facebookAccount);
+            } catch (error) {
+                console.error("Lỗi khi kiểm tra kết nối Facebook", error);
+                setHasFacebookConnection(false);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        checkConnection();
+    }, []);
 
-    // Chỉ chạy khi có session
-    if (session) {
-        fetchConnectionStatus();
+    if (isLoading) {
+        return (
+            <div className="max-w-7xl mx-auto p-8 text-center">
+                <p>Đang tải dữ liệu, vui lòng chờ...</p>
+            </div>
+        );
     }
-  }, [session]);
 
-  if (isLoading) {
-    return <div className="text-center p-10">Đang tải dữ liệu tài khoản...</div>;
-  }
+    return (
+        <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold text-gray-800">Bảng điều khiển</h1>
+                <div>
+                    <span className="text-sm text-gray-600 mr-4">Chào, {session.user?.name}!</span>
+                    <button onClick={() => signOut({ callbackUrl: '/login' })} className="text-sm font-medium text-red-600 hover:text-red-800">
+                        Đăng xuất
+                    </button>
+                </div>
+            </div>
 
-  return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">Bảng điều khiển</h1>
-      
-      {/* Dựa vào trạng thái từ API để hiển thị giao diện */}
-      {connectionStatus?.isConnected ? (
-        <div>
-          <div className="p-4 mb-6 bg-green-50 border-l-4 border-green-500 rounded-r-lg">
-            <p className="font-semibold text-green-800">Đã kết nối với tài khoản Facebook.</p>
-          </div>
-          {/* Truyền session vào Poster, Poster sẽ tự lấy fanpage */}
-          <Poster session={session} /> 
+            {hasFacebookConnection ? (
+                // Nếu ĐÃ kết nối, render thẳng component Poster
+                <Poster session={session} />
+            ) : (
+                // Nếu CHƯA kết nối, hiển thị nút để bắt đầu
+                <div className="text-center p-8 mt-10 bg-white border-2 border-dashed rounded-lg">
+                    <h2 className="text-xl font-semibold mb-2">Bắt đầu nào!</h2>
+                    <p className="mb-6 text-gray-600">Bạn cần kết nối tài khoản Facebook của mình để có thể lấy danh sách Fanpage và đăng bài.</p>
+                    <button
+                        onClick={() => signIn("facebook")}
+                        className="px-6 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        Kết nối với Facebook
+                    </button>
+                </div>
+            )}
         </div>
-      ) : (
-        <div className="text-center p-8 bg-white border-2 border-dashed rounded-lg">
-          <p className="mb-4 text-gray-600">Bạn chưa kết nối tài khoản Facebook. Hãy kết nối để bắt đầu đăng bài.</p>
-          <button
-            onClick={() => signIn("facebook")}
-            className="px-6 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Kết nối với Facebook
-          </button>
-        </div>
-      )}
-    </div>
-  );
+    );
 }

@@ -5,7 +5,7 @@ import AppProvider from "@/components/AppProvider";
 import Header from "@/components/Header";
 
 const inter = Inter({ subsets: ["latin"] });
-export const metadata: Metadata = { title: "SaaS Poster", description: "Công cụ đăng bài AI" };
+export const metadata: Metadata = { title: "47.pro.vn", description: "Công cụ đăng bài AI" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

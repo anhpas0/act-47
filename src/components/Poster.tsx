@@ -21,7 +21,7 @@ export default function Poster({ session }: { session: Session }) {
   // States cho việc quản lý ảnh
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null); // Lưu ảnh AI dạng base64
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0); 
 
   // States cho các chức năng AI
@@ -29,6 +29,7 @@ export default function Poster({ session }: { session: Session }) {
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [description, setDescription] = useState('');
   const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
+  const [textPrompt, setTextPrompt] = useState(''); // State mới cho prompt văn bản
 
   // States chung cho giao diện và hẹn lịch
   const [status, setStatus] = useState('');
@@ -36,7 +37,7 @@ export default function Poster({ session }: { session: Session }) {
   const [isScheduling, setIsScheduling] = useState(false);
   const [scheduledDateTime, setScheduledDateTime] = useState('');
   
-  // === SỬA ĐỔI QUAN TRỌNG NHẤT LÀ Ở ĐÂY ===
+  // Tải danh sách fanpage và footers
   useEffect(() => {
     const fetchPagesAndFooters = async () => {
       setIsLoadingPages(true);
@@ -46,7 +47,7 @@ export default function Poster({ session }: { session: Session }) {
         if (Array.isArray(res.data.pages)) {
           setPages(res.data.pages);
           setFooters(res.data.footers || {});
-          setStatus(""); // Xóa thông báo nếu thành công
+          setStatus("");
         } else {
           setPages([]);
           setStatus("Lỗi: Dữ liệu Fanpage trả về không hợp lệ.");
@@ -58,12 +59,12 @@ export default function Poster({ session }: { session: Session }) {
         setIsLoadingPages(false); 
       }
     };
-
-    // Chỉ chạy hàm fetch khi 'session' đã tồn tại và hợp lệ
     if (session) {
         fetchPagesAndFooters();
     }
-  }, [session]); // Thêm 'session' vào dependency array để useEffect chạy lại khi session thay đổi
+  }, [session]);
+
+  // --- CÁC HÀM XỬ LÝ SỰ KIỆN ---
 
   const handleFooterChange = (pageId: string, value: string) => {
     setFooters(prev => ({ ...prev, [pageId]: value }));
@@ -131,33 +132,54 @@ export default function Poster({ session }: { session: Session }) {
     } catch (error) { setStatus("❌ Lỗi khi tạo mô tả."); }
     finally { setIsGeneratingDesc(false); }
   };
+  
+  const handleGenerateDescriptionFromText = async () => {
+    if (!textPrompt) { setStatus("Vui lòng nhập ý tưởng để tạo mô tả."); return; }
+    
+    setIsGeneratingDesc(true);
+    setStatus("✍️ Gemini đang viết mô tả từ ý tưởng của bạn...");
+    const formData = new FormData();
+    formData.append('prompt_text', textPrompt);
+    
+    try {
+        const res = await axios.post('/api/poster/generate-description', formData);
+        const suggestions = res.data.description.split('\n').filter((line: string) => line.trim().startsWith('Gợi ý mô tả'));
+        setDescription(suggestions.join('\n'));
+        setStatus("✅ Đã tạo mô tả thành công!");
+    } catch (error) { setStatus("❌ Lỗi khi tạo mô tả."); }
+    finally { setIsGeneratingDesc(false); }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (imageFiles.length === 0 && !generatedImage) {
-        setStatus("Bạn chưa chọn hoặc tạo ảnh để đăng.");
-        return;
-    }
+    const hasImage = imageFiles.length > 0 || generatedImage;
     if (!description || !selectedPage) {
         setStatus('Cần chọn Fanpage và có mô tả để đăng bài.');
         return;
     }
+    if (!hasImage && !window.confirm("Bạn chưa có ảnh nào. Bạn có chắc muốn đăng bài chỉ có văn bản không?")) {
+        return;
+    }
+    
     setIsLoading(true);
     setStatus('🚀 Đang gửi bài viết đến Facebook...');
-    
     const formData = new FormData();
-    if (generatedImage) {
-        const byteString = atob(generatedImage);
-        const ab = new ArrayBuffer(byteString.length);
-        const ia = new Uint8Array(ab);
-        for (let i = 0; i < byteString.length; i++) { ia[i] = byteString.charCodeAt(i); }
-        const aiFile = new File([ab], "ai_generated_image.png", { type: 'image/png' });
-        formData.append('image', aiFile);
-    } else {
-        for (const file of imageFiles) {
-            formData.append('image', file);
+
+    if (hasImage) {
+        if (generatedImage) {
+            const byteString = atob(generatedImage);
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) { ia[i] = byteString.charCodeAt(i); }
+            const aiFile = new File([ab], "ai_generated_image.png", { type: 'image/png' });
+            formData.append('image', aiFile);
+        } else {
+            for (const file of imageFiles) {
+                formData.append('image', file);
+            }
         }
     }
+    
     formData.append('description', description);
     formData.append('page_id', selectedPage.id);
     formData.append('page_access_token', selectedPage.access_token);
@@ -167,10 +189,11 @@ export default function Poster({ session }: { session: Session }) {
         const timestamp = Math.floor(new Date(scheduledDateTime).getTime() / 1000).toString();
         formData.append('scheduledTime', timestamp);
     }
+    
     try {
         const res = await axios.post('/api/poster/submit', formData);
         if(res.data.success) {
-            setStatus(`🎉 ${isScheduling ? 'Hẹn lịch thành công!' : 'Đăng bài thành công!'} Post ID: ${res.data.data.id}`);
+            setStatus(`🎉 ${isScheduling ? 'Hẹn lịch thành công!' : 'Đăng bài thành công!'} Post ID: ${res.data.data.id || res.data.data.post_id}`);
         } else {
             setStatus(`❌ Lỗi: ${res.data.error?.message || 'Lỗi không xác định'}`);
         }
@@ -228,7 +251,7 @@ export default function Poster({ session }: { session: Session }) {
                 <div className="p-6 bg-white border rounded-lg shadow-sm">
                     <h2 className="text-xl font-semibold mb-3">1. Tạo hoặc Tải lên Hình ảnh</h2>
                     <div className="p-4 bg-gray-50 rounded-lg">
-                        <h3 className="font-semibold mb-2">Tạo ảnh bằng AI</h3>
+                        <h3 className="font-semibold mb-2">Tạo ảnh bằng AI (DALL-E)</h3>
                         <div className="flex gap-2">
                             <input type="text" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Nhập ý tưởng của bạn, ví dụ: một chú mèo phi hành gia..." className="flex-grow p-2 border rounded-md"/>
                             <button type="button" onClick={handleGenerateImage} disabled={isGeneratingImage} className="px-4 py-2 font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:bg-purple-300">
@@ -244,10 +267,10 @@ export default function Poster({ session }: { session: Session }) {
                 </div>
 
                 <div className="p-6 bg-white border rounded-lg shadow-sm">
-                    <h2 className="text-xl font-semibold mb-3">2. Tạo Caption</h2>
+                    <h2 className="text-xl font-semibold mb-3">2. Tạo Mô tả</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-4">
-                            <h3 className="font-semibold">Ảnh sẽ được sử dụng</h3>
+                            <h3 className="font-semibold">Ảnh được chọn</h3>
                             <div className="w-full aspect-square border-2 border-dashed rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden relative">
                             {generatedImage ? (
                                 <Image src={`data:image/png;base64,${generatedImage}`} alt="Ảnh do AI tạo" layout="fill" objectFit="contain" />
@@ -277,10 +300,18 @@ export default function Poster({ session }: { session: Session }) {
                             )}
                         </div>
                         <div className="space-y-4">
+                            <h3 className="font-semibold">Nội dung bài viết</h3>
                             <button type="button" onClick={handleGenerateDescription} disabled={isGeneratingDesc || (!generatedImage && imageFiles.length === 0)} className="w-full px-4 py-2 font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:bg-green-300">
-                                {isGeneratingDesc ? 'Đang viết...' : 'Tạo caption bằng AI'}
+                                {isGeneratingDesc ? 'Đang viết...' : 'Tạo mô tả từ Ảnh đã chọn'}
                             </button>
-                            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Caption sẽ được tạo ở đây..." rows={12} className="w-full p-2 border rounded-md bg-gray-50"/>
+                            <div className="p-4 bg-gray-50 rounded-lg mt-4">
+                                <h4 className="font-semibold mb-2 text-sm">Hoặc tạo mô tả từ ý tưởng</h4>
+                                <div className="flex gap-2">
+                                    <input type="text" value={textPrompt} onChange={(e) => setTextPrompt(e.target.value)} placeholder="Ví dụ: lợi ích của việc đọc sách..." className="flex-grow p-2 border rounded-md"/>
+                                    <button type="button" onClick={handleGenerateDescriptionFromText} disabled={isGeneratingDesc} className="px-4 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:bg-green-300">Tạo</button>
+                                </div>
+                            </div>
+                            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Mô tả sẽ được tạo ở đây..." rows={8} className="w-full p-2 border rounded-md"/>
                         </div>
                     </div>
                 </div>

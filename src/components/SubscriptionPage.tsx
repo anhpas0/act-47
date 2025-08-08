@@ -31,7 +31,7 @@ export default function SubscriptionPage({ username }: { username: string }) {
     const router = useRouter(); // Khởi tạo router
 
     const finalUsername = inputUsername.trim() || username.trim();
-    const paymentContent = selectedPlan ? `${finalUsername} kich hoat goi ${selectedPlan.id}`.replace(/_/g, '') : '';
+    const paymentContent = selectedPlan ? `${finalUsername} kh ${selectedPlan.id}`.replace(/_/g, '') : '';
 
     const handleConfirmPlan = () => {
         if (!selectedPlan) {
@@ -40,7 +40,7 @@ export default function SubscriptionPage({ username }: { username: string }) {
         }
         // Nếu là gói dùng thử, bỏ qua bước QR code
         if (selectedPlan.id === 'free_trial') {
-            alert("Bạn đã chọn gói dùng thử. Vui lòng liên hệ Admin để kích hoạt tài khoản.");
+            alert("Bạn đã chọn gói dùng thử. Vui lòng Liên hệ Zalo: 0941.280.777 để kích hoạt tài khoản.");
             // Chuyển hướng về trang login sau khi thông báo
             router.push('/login');
         } else {
@@ -51,7 +51,7 @@ export default function SubscriptionPage({ username }: { username: string }) {
 
     const handleCopyContent = () => {
         if (!paymentContent || !finalUsername) {
-            alert("Vui lòng nhập tên đăng nhập của bạn.");
+            alert("Vui lòng nhập tên tài khoản của bạn.");
             return;
         };
         navigator.clipboard.writeText(paymentContent);
@@ -121,13 +121,13 @@ export default function SubscriptionPage({ username }: { username: string }) {
                                 
                                 {!username && (
                                     <div className="mb-4">
-                                        <label className="block text-sm font-medium mb-1 text-gray-700">Vui lòng nhập lại Tên đăng nhập của bạn:</label>
+                                        <label className="block text-sm font-medium mb-1 text-gray-700">Vui lòng nhập lại Tên tài khoản của bạn:</label>
                                         <input 
                                             type="text" 
                                             value={inputUsername} 
                                             onChange={(e) => setInputUsername(e.target.value)}
                                             className="w-full p-2 border rounded-md"
-                                            placeholder="Tên đăng nhập đã đăng ký"
+                                            placeholder="Tên tài khoản đã đăng ký"
                                         />
                                     </div>
                                 )}

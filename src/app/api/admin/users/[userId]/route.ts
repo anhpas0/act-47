@@ -1,10 +1,17 @@
 // File: src/app/api/admin/users/[userId]/route.ts
 
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server'; // Import thêm NextRequest
 import clientPromise from '@/lib/mongodb';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
 import { ObjectId } from 'mongodb';
+
+// Định nghĩa một kiểu dữ liệu cho context để code rõ ràng hơn
+interface RouteContext {
+    params: {
+        userId: string;
+    }
+}
 
 // Hàm helper để kiểm tra quyền Admin
 async function isAdmin() {
@@ -14,16 +21,22 @@ async function isAdmin() {
 
 // Hàm DELETE để xóa một người dùng
 export async function DELETE(
-    request: Request,
-    { params }: { params: { userId: string } }
+    request: NextRequest, // Sử dụng NextRequest để nhất quán
+    context: RouteContext // Sử dụng kiểu dữ liệu đã định nghĩa
 ) {
     if (!(await isAdmin())) {
         return NextResponse.json({ error: 'Không có quyền truy cập' }, { status: 403 });
     }
 
-    const userId = params.userId;
+    // Lấy userId từ context.params
+    const { userId } = context.params;
     if (!userId) {
         return NextResponse.json({ error: 'Thiếu User ID' }, { status: 400 });
+    }
+
+    // Kiểm tra xem userId có phải là một ObjectId hợp lệ không
+    if (!ObjectId.isValid(userId)) {
+        return NextResponse.json({ error: 'User ID không hợp lệ' }, { status: 400 });
     }
 
     try {

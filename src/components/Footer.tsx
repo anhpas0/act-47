@@ -31,9 +31,6 @@ export default function Footer() {
             </ul>
           </div>
         </div>
-        <div className="mt-8 border-t border-gray-700 pt-8 text-center text-sm">
-          <p>&copy; {new Date().getFullYear()} 47.pro.vn. All rights reserved.</p>
-        </div>
       </div>
     </footer>
   );

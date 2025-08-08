@@ -5,11 +5,9 @@ import clientPromise from "@/lib/mongodb";
 import CredentialsProvider from "next-auth/providers/credentials";
 import FacebookProvider from "next-auth/providers/facebook";
 import bcrypt from "bcryptjs";
-import { AuthOptions, User, Session } from "next-auth";
-import { JWT } from "next-auth/jwt";
+import { AuthOptions } from "next-auth";
 import { MongoClient } from "mongodb";
 
-// EXPORT TỪ ĐÂY
 export const authOptions: AuthOptions = {
   adapter: MongoDBAdapter(clientPromise as Promise<MongoClient>),
   providers: [
@@ -31,20 +29,45 @@ export const authOptions: AuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials) return null;
+
         const client = await clientPromise;
-        const user = await client.db().collection("users").findOne({ username: credentials.username });
+        const db = client.db();
+        
+        const user = await db.collection("users").findOne({ username: credentials.username });
+
         if (user && bcrypt.compareSync(credentials.password, user.password as string)) {
+          
+          // === BẮT ĐẦU LOGIC KIỂM TRA HẠN SỬ DỤNG MỚI ===
+          const now = new Date();
+          
+          // 1. Kiểm tra xem tài khoản có ngày hết hạn và ngày đó đã qua chưa
+          // (Bỏ qua kiểm tra này nếu plan là 'lifetime' hoặc planExpiresAt là null)
+          if (user.plan !== 'lifetime' && user.planExpiresAt && new Date(user.planExpiresAt) < now) {
+              // Nếu đã hết hạn, cập nhật status thành 'inactive' trong DB
+              if (user.status !== 'inactive') {
+                  await db.collection("users").updateOne({ _id: user._id }, { $set: { status: 'inactive' } });
+              }
+              // Ném lỗi để hiển thị cho người dùng ở trang login
+              throw new Error("Gói cước của bạn đã hết hạn. Vui lòng liên hệ Admin.");
+          }
+          
+          // 2. Kiểm tra trạng thái chung của tài khoản (vẫn giữ lại)
           if (user.status !== 'active') {
             throw new Error("Tài khoản chưa được kích hoạt hoặc đã bị khóa.");
           }
+          // === KẾT THÚC LOGIC KIỂM TRA HẠN SỬ DỤNG MỚI ===
+
+          // Nếu mọi thứ đều ổn, trả về thông tin user
           return { id: user._id.toString(), name: user.username, role: user.role };
         }
+        // Nếu mật khẩu sai, trả về null
         return null;
       },
     }),
   ],
   session: { strategy: "jwt" },
   callbacks: {
+    // Callbacks của bạn đã đúng, không cần thay đổi
     async jwt({ token, user, account }) {
       if (user) {
         token.role = (user as any).role;

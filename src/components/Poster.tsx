@@ -25,11 +25,11 @@ export default function Poster({ session }: { session: Session }) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0); 
 
   // States cho các chức năng AI
-  const [prompt, setPrompt] = useState('');
+  const [prompt, setPrompt] = useState(''); // Prompt để tạo ảnh
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [description, setDescription] = useState('');
   const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
-  const [textPrompt, setTextPrompt] = useState(''); // State mới cho prompt văn bản
+  const [textPrompt, setTextPrompt] = useState(''); // Prompt để tạo mô tả từ text
 
   // States chung cho giao diện và hẹn lịch
   const [status, setStatus] = useState('');
@@ -107,7 +107,7 @@ export default function Poster({ session }: { session: Session }) {
     finally { setIsGeneratingImage(false); }
   };
 
-  const handleGenerateDescription = async () => {
+  const handleGenerateDescriptionFromImage = async () => {
     let imageToSend: File | null = null;
     if (imageFiles.length > 0 && imageFiles[selectedImageIndex]) {
         imageToSend = imageFiles[selectedImageIndex];
@@ -121,7 +121,7 @@ export default function Poster({ session }: { session: Session }) {
     if (!imageToSend) { setStatus("Vui lòng chọn một ảnh để tạo mô tả."); return; }
     
     setIsGeneratingDesc(true);
-    setStatus(`✍️ Gemini đang viết mô tả cho ảnh ${selectedImageIndex + 1}...`);
+    setStatus(`✍️ Gemini đang viết mô tả TỪ ẢNH ${selectedImageIndex + 1}...`);
     const formData = new FormData();
     formData.append('image', imageToSend);
     try {
@@ -135,12 +135,10 @@ export default function Poster({ session }: { session: Session }) {
   
   const handleGenerateDescriptionFromText = async () => {
     if (!textPrompt) { setStatus("Vui lòng nhập ý tưởng để tạo mô tả."); return; }
-    
     setIsGeneratingDesc(true);
-    setStatus("✍️ Gemini đang viết mô tả từ ý tưởng của bạn...");
+    setStatus("✍️ Gemini đang viết mô tả TỪ Ý TƯỞNG của bạn...");
     const formData = new FormData();
     formData.append('prompt_text', textPrompt);
-    
     try {
         const res = await axios.post('/api/poster/generate-description', formData);
         const suggestions = res.data.description.split('\n').filter((line: string) => line.trim().startsWith('Gợi ý mô tả'));
@@ -152,13 +150,14 @@ export default function Poster({ session }: { session: Session }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const hasImage = imageFiles.length > 0 || generatedImage;
+    const hasImage = imageFiles.length > 0 || !!generatedImage;
     if (!description || !selectedPage) {
         setStatus('Cần chọn Fanpage và có mô tả để đăng bài.');
         return;
     }
-    if (!hasImage && !window.confirm("Bạn chưa có ảnh nào. Bạn có chắc muốn đăng bài chỉ có văn bản không?")) {
-        return;
+    if (!hasImage) {
+        const userConfirmed = window.confirm("Bạn chưa có ảnh nào. Bạn có chắc muốn đăng bài chỉ có văn bản không?");
+        if (!userConfirmed) return;
     }
     
     setIsLoading(true);
@@ -267,57 +266,57 @@ export default function Poster({ session }: { session: Session }) {
                 </div>
 
                 <div className="p-6 bg-white border rounded-lg shadow-sm">
-                    <h2 className="text-xl font-semibold mb-3">2. Tạo Mô tả</h2>
+                    <h2 className="text-xl font-semibold mb-3">2. Tạo Mô tả & Nội dung</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-4">
-                            <h3 className="font-semibold">Ảnh được chọn</h3>
-                            <div className="w-full aspect-square border-2 border-dashed rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden relative">
-                            {generatedImage ? (
-                                <Image src={`data:image/png;base64,${generatedImage}`} alt="Ảnh do AI tạo" layout="fill" objectFit="contain" />
-                            ) : imagePreviews.length > 0 ? (
-                                <Image src={imagePreviews[selectedImageIndex]} alt={`Xem trước ảnh ${selectedImageIndex + 1}`} layout="fill" objectFit="contain" />
-                            ) : (
-                                <p className="text-gray-400">Chưa có ảnh</p>
-                            )}
-                            </div>
-                            
-                            {imagePreviews.length > 1 && (
-                                <div>
-                                    <h4 className="text-sm font-medium mb-2">Chọn ảnh để tạo mô tả:</h4>
-                                    <div className="flex gap-2 overflow-x-auto p-2 bg-gray-100 rounded-lg">
-                                    {imagePreviews.map((src, index) => (
-                                        <button 
-                                            key={index} 
-                                            type="button"
-                                            onClick={() => setSelectedImageIndex(index)}
-                                            className={`flex-shrink-0 w-16 h-16 relative border-2 rounded-md overflow-hidden transition-all ${selectedImageIndex === index ? 'border-blue-500 ring-2 ring-blue-300' : 'border-transparent'}`}
-                                        >
-                                            <Image src={src} alt={`Preview ${index+1}`} layout="fill" objectFit="cover" />
-                                        </button>
-                                    ))}
-                                    </div>
+                            <h3 className="font-semibold">Lựa chọn 1: Tạo mô tả từ ảnh</h3>
+                            <div className="p-4 bg-gray-50 rounded-lg">
+                                <div className="w-full aspect-square border-2 border-dashed rounded-lg flex items-center justify-center bg-gray-100 overflow-hidden relative mb-4">
+                                {generatedImage ? (
+                                    <Image src={`data:image/png;base64,${generatedImage}`} alt="Ảnh do AI tạo" layout="fill" objectFit="contain" />
+                                ) : imagePreviews.length > 0 ? (
+                                    <Image src={imagePreviews[selectedImageIndex]} alt={`Xem trước ảnh ${selectedImageIndex + 1}`} layout="fill" objectFit="contain" />
+                                ) : (
+                                    <p className="text-gray-400">Chưa có ảnh</p>
+                                )}
                                 </div>
-                            )}
-                        </div>
-                        <div className="space-y-4">
-                            <h3 className="font-semibold">Nội dung bài viết</h3>
-                            <button type="button" onClick={handleGenerateDescription} disabled={isGeneratingDesc || (!generatedImage && imageFiles.length === 0)} className="w-full px-4 py-2 font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:bg-green-300">
-                                {isGeneratingDesc ? 'Đang viết...' : 'Tạo mô tả từ Ảnh đã chọn'}
-                            </button>
-                            <div className="p-4 bg-gray-50 rounded-lg mt-4">
-                                <h4 className="font-semibold mb-2 text-sm">Hoặc tạo mô tả từ ý tưởng</h4>
+                                {imagePreviews.length > 1 && (
+                                    <div>
+                                        <h4 className="text-sm font-medium mb-2">Chọn ảnh để tạo mô tả:</h4>
+                                        <div className="flex gap-2 overflow-x-auto p-2 bg-gray-100 rounded-lg">
+                                        {imagePreviews.map((src, index) => (
+                                            <button key={index} type="button" onClick={() => setSelectedImageIndex(index)} className={`flex-shrink-0 w-16 h-16 relative border-2 rounded-md overflow-hidden transition-all ${selectedImageIndex === index ? 'border-blue-500 ring-2 ring-blue-300' : 'border-transparent'}`}>
+                                                <Image src={src} alt={`Preview ${index+1}`} layout="fill" objectFit="cover" />
+                                            </button>
+                                        ))}
+                                        </div>
+                                    </div>
+                                )}
+                                <button type="button" onClick={handleGenerateDescriptionFromImage} disabled={isGeneratingDesc || (!generatedImage && imageFiles.length === 0)} className="w-full mt-4 px-4 py-2 font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:bg-green-300">
+                                    Tạo mô tả từ Ảnh đã chọn
+                                </button>
+                            </div>
+
+                            <div className="text-center my-2 font-semibold text-gray-500">HOẶC</div>
+
+                            <h3 className="font-semibold">Lựa chọn 2: Tạo mô tả từ ý tưởng</h3>
+                            <div className="p-4 bg-gray-50 rounded-lg">
                                 <div className="flex gap-2">
                                     <input type="text" value={textPrompt} onChange={(e) => setTextPrompt(e.target.value)} placeholder="Ví dụ: lợi ích của việc đọc sách..." className="flex-grow p-2 border rounded-md"/>
                                     <button type="button" onClick={handleGenerateDescriptionFromText} disabled={isGeneratingDesc} className="px-4 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:bg-green-300">Tạo</button>
                                 </div>
                             </div>
-                            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Mô tả sẽ được tạo ở đây..." rows={8} className="w-full p-2 border rounded-md"/>
+                        </div>
+
+                        <div className="space-y-4">
+                            <h3 className="font-semibold">Nội dung bài viết (Chỉnh sửa tại đây)</h3>
+                            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Mô tả sẽ được tạo và hiển thị ở đây..." rows={20} className="w-full p-2 border rounded-md bg-white"/>
                         </div>
                     </div>
                 </div>
                 
                 <div className="p-6 bg-white border rounded-lg shadow-sm">
-                    <h2 className="text-xl font-semibold mb-3">3. Hẹn lịch (Tùy chọn)</h2>
+                   <h2 className="text-xl font-semibold mb-3">3. Hẹn lịch (Tùy chọn)</h2>
                     <div className="flex items-center space-x-4">
                         <input type="checkbox" id="schedule-check" checked={isScheduling} onChange={(e) => setIsScheduling(e.target.checked)} className="h-5 w-5 rounded text-blue-600 focus:ring-blue-500"/>
                         <label htmlFor="schedule-check" className="font-medium text-gray-700">Hẹn lịch đăng bài</label>

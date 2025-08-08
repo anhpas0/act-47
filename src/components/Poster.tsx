@@ -37,7 +37,6 @@ export default function Poster({ session }: { session: Session }) {
   const [isScheduling, setIsScheduling] = useState(false);
   const [scheduledDateTime, setScheduledDateTime] = useState('');
   
-  // === SỬA ĐỔI QUAN TRỌNG NHẤT LÀ Ở ĐÂY ===
   useEffect(() => {
     const fetchPagesAndFooters = async () => {
       setIsLoadingPages(true);
@@ -60,11 +59,10 @@ export default function Poster({ session }: { session: Session }) {
       }
     };
 
-    // Chỉ chạy hàm fetch khi 'session' đã tồn tại và hợp lệ
     if (session) {
         fetchPagesAndFooters();
     }
-  }, [session]); // Thêm 'session' vào dependency array để useEffect chạy lại khi session thay đổi
+  }, [session]);
 
   const handleFooterChange = (pageId: string, value: string) => {
     setFooters(prev => ({ ...prev, [pageId]: value }));
@@ -205,19 +203,19 @@ export default function Poster({ session }: { session: Session }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-gray-800"> {/* SỬA LỖI: Thêm màu chữ mặc định */}
       {status && <div className={`p-3 my-2 rounded text-center ${status.includes('Lỗi') ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>{status}</div>}
       
       <div className="p-6 bg-white border rounded-lg shadow-sm">
         <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-700">Cài đặt Fanpage & Footer</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Cài đặt Fanpage & Footer</h2> {/* SỬA LỖI: Thêm màu chữ */}
             <button onClick={handleSaveFooters} className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">Lưu Footers</button>
         </div>
         <div className="space-y-4">
             {isLoadingPages ? <p>Đang tải danh sách trang...</p> : (
                 pages.length > 0 ? pages.map(page => (
                     <div key={page.id} className="p-3 bg-gray-50 rounded-md border">
-                        <p className="font-semibold">{page.name}</p>
+                        <p className="font-semibold text-gray-800">{page.name}</p> {/* SỬA LỖI: Thêm màu chữ */}
                         <textarea
                             placeholder={`Nhập footer cho trang ${page.name}...`}
                             value={footers[page.id] || ''}
@@ -233,7 +231,7 @@ export default function Poster({ session }: { session: Session }) {
       
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="p-6 bg-white border rounded-lg shadow-sm">
-            <label className="block mb-2 font-semibold text-gray-700">Chọn Fanpage để đăng</label>
+            <label className="block mb-2 font-semibold text-gray-700">Chọn Fanpage để đăng</label> {/* SỬA LỖI: Đổi màu đậm hơn */}
             <select 
                 value={selectedPage?.id || ""}
                 onChange={(e) => setSelectedPage(pages.find(p => p.id === e.target.value) || null)} 
@@ -250,9 +248,9 @@ export default function Poster({ session }: { session: Session }) {
         {selectedPage && (
             <>
                 <div className="p-6 bg-white border rounded-lg shadow-sm">
-                    <h2 className="text-xl font-semibold mb-3">1. Tạo hoặc Tải lên Hình ảnh</h2>
+                    <h2 className="text-xl font-semibold mb-3 text-gray-900">1. Tạo hoặc Tải lên Hình ảnh</h2> {/* SỬA LỖI: Thêm màu chữ */}
                     <div className="p-4 bg-gray-50 rounded-lg">
-                        <h3 className="font-semibold mb-2">Tạo ảnh bằng AI (DALL-E)</h3>
+                        <h3 className="font-semibold mb-2 text-gray-800">Tạo ảnh bằng AI (DALL-E)</h3> {/* SỬA LỖI: Thêm màu chữ */}
                         <div className="flex gap-2">
                             <input type="text" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Nhập ý tưởng của bạn, ví dụ: một chú mèo phi hành gia..." className="flex-grow p-2 border rounded-md"/>
                             <button type="button" onClick={handleGenerateImage} disabled={isGeneratingImage} className="px-4 py-2 font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:bg-purple-300">
@@ -262,16 +260,16 @@ export default function Poster({ session }: { session: Session }) {
                     </div>
                     <div className="text-center my-4 font-semibold text-gray-500">HOẶC</div>
                     <div className="p-4 bg-gray-50 rounded-lg">
-                        <h3 className="font-semibold mb-2">Tải ảnh lên từ máy tính</h3>
+                        <h3 className="font-semibold mb-2 text-gray-800">Tải ảnh lên từ máy tính</h3> {/* SỬA LỖI: Thêm màu chữ */}
                         <input type="file" accept="image/*" multiple onChange={handleImageChange} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
                     </div>
                 </div>
 
                 <div className="p-6 bg-white border rounded-lg shadow-sm">
-                    <h2 className="text-xl font-semibold mb-3">2. Tạo Mô tả & Nội dung</h2>
+                    <h2 className="text-xl font-semibold mb-3 text-gray-900">2. Tạo Mô tả & Nội dung</h2> {/* SỬA LỖI: Thêm màu chữ */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-4">
-                            <h3 className="font-semibold">Lựa chọn 1: Tạo mô tả từ ảnh</h3>
+                            <h3 className="font-semibold text-gray-800">Lựa chọn 1: Tạo mô tả từ ảnh</h3> {/* SỬA LỖI: Thêm màu chữ */}
                             <div className="p-4 bg-gray-50 rounded-lg">
                                 <div className="w-full aspect-square border-2 border-dashed rounded-lg flex items-center justify-center bg-gray-100 overflow-hidden relative mb-4">
                                 {generatedImage ? (
@@ -284,7 +282,7 @@ export default function Poster({ session }: { session: Session }) {
                                 </div>
                                 {imagePreviews.length > 1 && (
                                     <div>
-                                        <h4 className="text-sm font-medium mb-2">Chọn ảnh để tạo mô tả:</h4>
+                                        <h4 className="text-sm font-medium mb-2 text-gray-700">Chọn ảnh để tạo mô tả:</h4> {/* SỬA LỖI: Thêm màu chữ */}
                                         <div className="flex gap-2 overflow-x-auto p-2 bg-gray-100 rounded-lg">
                                         {imagePreviews.map((src, index) => (
                                             <button key={index} type="button" onClick={() => setSelectedImageIndex(index)} className={`flex-shrink-0 w-16 h-16 relative border-2 rounded-md overflow-hidden transition-all ${selectedImageIndex === index ? 'border-blue-500 ring-2 ring-blue-300' : 'border-transparent'}`}>
@@ -301,7 +299,7 @@ export default function Poster({ session }: { session: Session }) {
 
                             <div className="text-center my-2 font-semibold text-gray-500">HOẶC</div>
 
-                            <h3 className="font-semibold">Lựa chọn 2: Tạo mô tả từ ý tưởng</h3>
+                            <h3 className="font-semibold text-gray-800">Lựa chọn 2: Tạo mô tả từ ý tưởng</h3> {/* SỬA LỖI: Thêm màu chữ */}
                             <div className="p-4 bg-gray-50 rounded-lg">
                                 <div className="flex gap-2">
                                     <input type="text" value={textPrompt} onChange={(e) => setTextPrompt(e.target.value)} placeholder="Ví dụ: lợi ích của việc đọc sách..." className="flex-grow p-2 border rounded-md"/>
@@ -311,14 +309,14 @@ export default function Poster({ session }: { session: Session }) {
                         </div>
 
                         <div className="space-y-4">
-                            <h3 className="font-semibold">Nội dung bài viết (Chỉnh sửa tại đây)</h3>
+                            <h3 className="font-semibold text-gray-800">Nội dung bài viết (Chỉnh sửa tại đây)</h3> {/* SỬA LỖI: Thêm màu chữ */}
                             <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Mô tả sẽ được tạo và hiển thị ở đây..." rows={20} className="w-full p-2 border rounded-md bg-white"/>
                         </div>
                     </div>
                 </div>
                 
                 <div className="p-6 bg-white border rounded-lg shadow-sm">
-                   <h2 className="text-xl font-semibold mb-3">3. Hẹn lịch (Tùy chọn)</h2>
+                   <h2 className="text-xl font-semibold mb-3 text-gray-900">3. Hẹn lịch (Tùy chọn)</h2> {/* SỬA LỖI: Thêm màu chữ */}
                     <div className="flex items-center space-x-4">
                         <input type="checkbox" id="schedule-check" checked={isScheduling} onChange={(e) => setIsScheduling(e.target.checked)} className="h-5 w-5 rounded text-blue-600 focus:ring-blue-500"/>
                         <label htmlFor="schedule-check" className="font-medium text-gray-700">Hẹn lịch đăng bài</label>
@@ -335,7 +333,7 @@ export default function Poster({ session }: { session: Session }) {
 
                 <div className="flex justify-end">
                     <button type="submit" disabled={isLoading} className="px-8 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300">
-                        {isLoading ? 'Đang xử lý...' : (isScheduling ? 'Hẹn lịch đăng' : 'Đăng ngay')}
+                        {isLoading ? 'Đang xử lý...' : (isScheduling ? 'Hẹn lịch đăng' : 'Đang ngay')}
                     </button>
                 </div>
             </>

@@ -1,4 +1,4 @@
-/* File: src/app/globals.css */
+/* File: src/app/globals.css - Trả về trạng thái gốc */
 
 @import "tailwindcss";
 
@@ -23,8 +23,7 @@
 
 body {
   background: var(--background);
-  /* Chúng ta sẽ ghi đè màu này ở dưới */
-  color: var(--foreground); 
+  color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -32,34 +31,8 @@ body {
 @tailwind components;
 @tailwind utilities;
 
-/* === BẮT ĐẦU PHẦN SỬA LỖI MÀU CHỮ (PHIÊN BẢN NÂNG CẤP) === */
-@layer base {
-  /* 
-    Đặt màu mặc định cho tất cả các phần tử.
-    Điều này đảm bảo các thẻ như <p>, <span>, <div> đều có màu dễ đọc.
-  */
-  * {
-    @apply text-gray-800 dark:text-gray-200;
-  }
-  
-  /* 
-    Định nghĩa lại màu cho các thẻ heading một cách rõ ràng.
-    Điều này sẽ ghi đè lên bất kỳ style mặc định nào của Tailwind cho h1, h2, h3.
-  */
-  h1, h2, h3, h4, h5, h6 {
-    @apply text-gray-900 dark:text-gray-50;
-  }
-
-  /* 
-    Để đảm bảo các link cũng có màu dễ đọc, chúng ta có thể thêm quy tắc sau
-    (không bắt buộc, nhưng khuyến khích)
-  */
-  a {
-      @apply text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300;
-  }
-}
-/* === KẾT THÚC PHẦN SỬA LỖI === */
-
+/* Thêm một class tiện ích để tính toán chiều cao, trừ đi chiều cao của Header */
+/* Header của chúng ta cao 4rem (h-16) */
 .min-h-screen-minus-header {
   min-height: calc(100vh - 4rem);
 }

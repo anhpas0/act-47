@@ -32,7 +32,7 @@ export default function Poster({ session }: { session: Session }) {
   const [textPrompt, setTextPrompt] = useState(''); // Prompt để tạo mô tả từ text
 
   // States chung cho giao diện và hẹn lịch
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isScheduling, setIsScheduling] = useState(false);
   const [scheduledDateTime, setScheduledDateTime] = useState('');
@@ -121,30 +121,33 @@ export default function Poster({ session }: { session: Session }) {
     if (!imageToSend) { setStatus("Vui lòng chọn một ảnh để tạo mô tả."); return; }
     
     setIsGeneratingDesc(true);
-    setStatus(`✍️ Gemini đang viết mô tả TỪ ẢNH ${selectedImageIndex + 1}...`);
+    setStatus(`✍️ Gemini đang viết mô tả TỪ ẢNH...`);
     const formData = new FormData();
     formData.append('image', imageToSend);
     try {
-        const res = await axios.post('/api/poster/generate-description', formData);
+        const res = await axios.post('/api/poster/generate-description', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
         const suggestions = res.data.description.split('\n').filter((line: string) => line.trim().startsWith('Gợi ý mô tả'));
         setDescription(suggestions.join('\n'));
         setStatus("✅ Đã tạo mô tả thành công!");
-    } catch (error) { setStatus("❌ Lỗi khi tạo mô tả."); }
+    } catch (error) { setStatus("❌ Lỗi khi tạo mô tả từ ảnh."); }
     finally { setIsGeneratingDesc(false); }
   };
   
   const handleGenerateDescriptionFromText = async () => {
     if (!textPrompt) { setStatus("Vui lòng nhập ý tưởng để tạo mô tả."); return; }
     setIsGeneratingDesc(true);
-    setStatus("✍️ Gemini đang viết mô tả TỪ Ý TƯỞNG của bạn...");
-    const formData = new FormData();
-    formData.append('prompt_text', textPrompt);
+    setStatus("✍️ Gemini đang viết mô tả TỪ Ý TƯỞNG...");
     try {
-        const res = await axios.post('/api/poster/generate-description', formData);
+        const res = await axios.post('/api/poster/generate-description', 
+            { prompt_text: textPrompt },
+            { headers: { 'Content-Type': 'application/json' } }
+        );
         const suggestions = res.data.description.split('\n').filter((line: string) => line.trim().startsWith('Gợi ý mô tả'));
         setDescription(suggestions.join('\n'));
         setStatus("✅ Đã tạo mô tả thành công!");
-    } catch (error) { setStatus("❌ Lỗi khi tạo mô tả."); }
+    } catch (error) { setStatus("❌ Lỗi khi tạo mô tả từ ý tưởng."); }
     finally { setIsGeneratingDesc(false); }
   };
 
@@ -163,7 +166,6 @@ export default function Poster({ session }: { session: Session }) {
     setIsLoading(true);
     setStatus('🚀 Đang gửi bài viết đến Facebook...');
     const formData = new FormData();
-
     if (hasImage) {
         if (generatedImage) {
             const byteString = atob(generatedImage);

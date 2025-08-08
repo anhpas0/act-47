@@ -1,4 +1,4 @@
-/* File: src/app/globals.css - Trả về trạng thái gốc */
+/* File: src/app/globals.css - Phiên bản đã sửa lỗi hiển thị */
 
 @import "tailwindcss";
 
@@ -14,12 +14,19 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* 
+  Chúng ta sẽ bình luận lại khối này.
+  Đây là cách an toàn nhất để vô hiệu hóa chế độ tối tự động, 
+  ngăn chặn lỗi nền đen trên mobile.
+*/
+/*
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
   }
 }
+*/
 
 body {
   background: var(--background);
@@ -31,8 +38,26 @@ body {
 @tailwind components;
 @tailwind utilities;
 
-/* Thêm một class tiện ích để tính toán chiều cao, trừ đi chiều cao của Header */
-/* Header của chúng ta cao 4rem (h-16) */
+/* === BẮT ĐẦU PHẦN SỬA LỖI MÀU CHỮ XÁM NHẠT === */
+@layer base {
+  /* 
+    Đặt một màu chữ mặc định dễ đọc cho tất cả các phần tử.
+    Quy tắc này sẽ ghi đè lên 'color: var(--foreground)' của body 
+    ở trên một cách an toàn nhờ @layer.
+  */
+  body {
+    @apply text-gray-800;
+  }
+  
+  /* 
+    Định nghĩa lại màu cho các thẻ heading một cách rõ ràng.
+  */
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-gray-900;
+  }
+}
+/* === KẾT THÚC PHẦN SỬA LỖI === */
+
 .min-h-screen-minus-header {
   min-height: calc(100vh - 4rem);
 }

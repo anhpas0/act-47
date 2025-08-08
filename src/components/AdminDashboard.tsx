@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 
+// Định nghĩa kiểu dữ liệu cho User
 interface User {
   _id: string;
   username: string;
@@ -19,6 +20,7 @@ export default function AdminDashboard() {
 
   useEffect(() => { fetchUsers(); }, []);
 
+  // Hàm để tải danh sách người dùng
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
@@ -32,6 +34,7 @@ export default function AdminDashboard() {
     }
   };
 
+  // Hàm để cập nhật (kích hoạt, hủy, đổi gói)
   const handleUpdateUser = async (userId: string, action: 'activate' | 'deactivate' | 'change_plan', plan?: string) => {
     setStatusMessage('Đang cập nhật...');
     try {
@@ -43,13 +46,16 @@ export default function AdminDashboard() {
     }
   };
 
-  // === HÀM MỚI ĐỂ XÓA USER ===
+  // === HÀM XÓA USER ĐÃ ĐƯỢC CẬP NHẬT ===
   const handleDeleteUser = async (userId: string, username: string) => {
       if (window.confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản '${username}'? Hành động này không thể hoàn tác.`)) {
           setStatusMessage(`Đang xóa tài khoản ${username}...`);
           try {
-              // Gọi đến API DELETE mới với userId trên URL
-              const res = await axios.delete(`/api/admin/users/${userId}`);
+              // Gọi đến API tĩnh bằng phương thức POST và action 'delete_user'
+              const res = await axios.post(`/api/admin/users`, {
+                  action: 'delete_user',
+                  userId: userId,
+              });
               setStatusMessage(res.data.message);
               fetchUsers(); // Tải lại danh sách sau khi xóa
           } catch (err: any) {
@@ -58,6 +64,7 @@ export default function AdminDashboard() {
       }
   };
   
+  // Hàm định dạng ngày tháng
   const formatDate = (dateString?: string) => {
       if (!dateString) return "N/A";
       return new Date(dateString).toLocaleDateString('vi-VN', {
@@ -65,17 +72,55 @@ export default function AdminDashboard() {
       });
   }
 
+  // Component con cho các hành động của Admin
   const AdminActions = ({ user }: { user: User }) => {
-    // ... (Component này giữ nguyên không đổi)
-    if (user.status === 'pending') { /*...*/ }
-    if (user.status === 'active') { /*...*/ }
-    if (user.status === 'inactive') { /*...*/ }
+    if (user.status === 'pending') {
+      return (
+        <select 
+            onChange={(e) => { if(e.target.value) handleUpdateUser(user._id, 'activate', e.target.value) }} 
+            defaultValue="" 
+            className="p-1 border rounded text-xs"
+        >
+            <option value="" disabled>Kích hoạt với gói...</option>
+            <option value="1_month">1 Tháng</option>
+            <option value="3_months">3 Tháng</option>
+            <option value="6_months">6 Tháng</option>
+            <option value="1_year">1 Năm</option>
+            <option value="lifetime">Vĩnh viễn</option>
+        </select>
+      );
+    }
+    if (user.status === 'active') {
+      return (
+        <div className="flex items-center gap-2">
+            <select 
+                onChange={(e) => { if(e.target.value) handleUpdateUser(user._id, 'change_plan', e.target.value) }}
+                defaultValue={user.plan}
+                className="p-1 border rounded text-xs"
+            >
+                <option value="1_month">1 Tháng</option>
+                <option value="3_months">3 Tháng</option>
+                <option value="6_months">6 Tháng</option>
+                <option value="1_year">1 Năm</option>
+                <option value="lifetime">Vĩnh viễn</option>
+            </select>
+            <button onClick={() => handleUpdateUser(user._id, 'deactivate')} className="text-red-600 hover:text-red-900 text-xs font-semibold">Hủy</button>
+        </div>
+      );
+    }
+     if (user.status === 'inactive') {
+      return (
+        <button onClick={() => handleUpdateUser(user._id, 'activate', user.plan || '1_month')} className="text-green-600 hover:text-green-900 text-xs font-semibold">
+          Kích hoạt lại
+        </button>
+      );
+    }
     return null;
   };
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">Admin Dashboard - Quản lý người dùng</h1>
+    <div className="text-gray-800">
+      <h1 className="text-3xl font-bold mb-6 text-gray-900">Admin Dashboard - Quản lý người dùng</h1>
       {statusMessage && <div className={`p-3 my-4 rounded text-center ${statusMessage.includes('Lỗi') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{statusMessage}</div>}
       <div className="bg-white shadow-lg rounded-lg overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
@@ -97,10 +142,7 @@ export default function AdminDashboard() {
                   <td className="px-6 py-4 whitespace-nowrap">{user.plan || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.plan === 'lifetime' ? 'Vĩnh viễn' : formatDate(user.planExpiresAt)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center gap-4">
-                    {/* Component AdminActions vẫn xử lý Kích hoạt/Thay đổi gói/Hủy kích hoạt */}
                     <AdminActions user={user} />
-                    
-                    {/* === NÚT XÓA MỚI === */}
                     <button 
                         onClick={() => handleDeleteUser(user._id, user.username)} 
                         className="text-gray-400 hover:text-red-600"

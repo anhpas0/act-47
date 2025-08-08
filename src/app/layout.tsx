@@ -13,7 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={inter.className}>
         <AppProvider>
           <Header />
-          <main className="bg-gray-50 text-gray-800">
+          <main className="bg-gray-50">
             {children}
           </main>
         </AppProvider>

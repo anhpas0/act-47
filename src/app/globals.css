@@ -3,3 +3,48 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* === BẮT ĐẦU PHẦN KHÔI PHỤC === */
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+/* === KẾT THÚC PHẦN KHÔI PHỤC === */
+
+
+/* === BẮT ĐẦU PHẦN SỬA LỖI MÀU CHỮ === */
+@layer base {
+  body {
+    /* 
+      Áp dụng màu chữ mặc định cho toàn bộ trang.
+      text-gray-900 là một màu xám rất đậm, dễ đọc.
+      dark:text-gray-100 sẽ áp dụng màu trắng ngà khi ở chế độ tối.
+    */
+    @apply text-gray-900 dark:text-gray-100;
+  }
+}
+/* === KẾT THÚC PHẦN SỬA LỖI MÀU CHỮ === */
+
+/* Thêm lại class tiện ích nếu cần */
+.min-h-screen-minus-header {
+  min-height: calc(100vh - 4rem);
+}

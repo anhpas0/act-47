@@ -1,48 +1,45 @@
 "use client";
 import axios from 'axios';
 import { useState } from 'react';
+import { useSession } from 'next-auth/react'; // Import useSession
 
 declare global { interface Window { FB: any; } }
 
-export default function FacebookConnectButton({ onSuccess }: { onSuccess: () => void }) {
+// Component này bây giờ không cần callback onSuccess nữa
+export default function FacebookConnectButton() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
-
-    // === TÁCH LOGIC BẤT ĐỒNG BỘ RA HÀM RIÊNG ===
-    const processFacebookToken = async (accessToken: string) => {
-        try {
-            // Gửi token về backend để liên kết tài khoản
-            await axios.post('/api/user/link-facebook', { accessToken });
-            onSuccess(); // Gọi callback để component cha cập nhật UI
-        } catch (err: any) {
-            setError(err.response?.data?.error || 'Lỗi khi liên kết tài khoản.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    const { update } = useSession(); // Lấy hàm update từ useSession
 
     const handleConnect = () => {
         setIsLoading(true);
         setError('');
-
         if (typeof window.FB === 'undefined' || !window.FB) {
             setError('SDK chưa tải xong. Vui lòng thử lại sau giây lát.');
             setIsLoading(false);
             return;
         }
-
-        // === SỬA LỖI Ở ĐÂY ===
-        // Callback bây giờ là một hàm đồng bộ thông thường
-        window.FB.login((response: any) => {
+        window.FB.login(async (response: any) => {
             if (response.authResponse) {
-                // Lấy token và gọi hàm bất đồng bộ đã được tách ra
                 const accessToken = response.authResponse.accessToken;
-                processFacebookToken(accessToken); 
+                try {
+                    // Gửi token về backend để liên kết tài khoản
+                    await axios.post('/api/user/link-facebook', { accessToken });
+                    
+                    // === SỬA ĐỔI QUAN TRỌNG NHẤT ===
+                    // Sau khi liên kết thành công, gọi hàm update() của NextAuth
+                    // để buộc nó phải làm mới lại session và JWT.
+                    await update();
+                    
+                    // Không cần làm gì thêm, session mới sẽ tự động kích hoạt
+                    // re-render ở UserDashboard.
+                } catch (err: any) {
+                    setError(err.response?.data?.error || 'Lỗi khi liên kết tài khoản.');
+                }
             } else {
-                // Người dùng đã hủy đăng nhập
                 setError('Kết nối Facebook đã bị hủy.');
-                setIsLoading(false); // Đảm bảo luôn tắt loading
             }
+            setIsLoading(false);
         }, { scope: 'public_profile,pages_show_list,pages_manage_posts,pages_read_engagement' });
     };
 
@@ -51,7 +48,7 @@ export default function FacebookConnectButton({ onSuccess }: { onSuccess: () => 
             <button 
                 onClick={handleConnect} 
                 disabled={isLoading}
-                className="w-full flex items-center justify-center gap-3 px-6 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300"
+                className="px-6 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300"
             >
                 {/* ... SVG Icon ... */}
                 <span>{isLoading ? 'Đang xử lý...' : 'Kết nối với Facebook'}</span>

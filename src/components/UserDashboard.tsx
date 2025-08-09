@@ -10,26 +10,30 @@ export default function UserDashboard({ session }: { session: Session }) {
     const [isLoading, setIsLoading] = useState(true);
     const [statusMessage, setStatusMessage] = useState('');
 
-    const checkConnection = async () => {
-        setIsLoading(true);
-        try {
-            const res = await axios.get('/api/user/accounts');
-            setHasFacebookConnection(res.data.isConnected);
-        } catch (error) {
-            console.error("Lỗi khi kiểm tra kết nối Facebook", error);
-            setHasFacebookConnection(false);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
+    // useEffect bây giờ sẽ tự động chạy lại khi session được cập nhật từ nút bấm
     useEffect(() => {
+        const checkConnection = async () => {
+            setIsLoading(true);
+            try {
+                const res = await axios.get('/api/user/accounts');
+                setHasFacebookConnection(res.data.isConnected);
+            } catch (error) {
+                console.error("Lỗi khi kiểm tra kết nối Facebook", error);
+                setHasFacebookConnection(false);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        
+        // Chỉ chạy khi có session
         if (session) {
           checkConnection();
         }
-    }, [session]);
-    
-    // ... (hàm handleDisconnectFacebook giữ nguyên)
+    }, [session]); // Phụ thuộc vào session
+
+    const handleDisconnectFacebook = async () => {
+        // ... (Hàm này giữ nguyên không đổi)
+    };
 
     if (isLoading) {
         return <div className="p-10 text-center">Đang tải dữ liệu...</div>;
@@ -45,7 +49,7 @@ export default function UserDashboard({ session }: { session: Session }) {
                 <div>
                     <div className="p-4 mb-6 bg-green-50 border-l-4 border-green-500 rounded-r-lg flex justify-between items-center">
                         <p className="font-semibold text-green-800">Đã kết nối với tài khoản Facebook.</p>
-                        {/* <button onClick={handleDisconnectFacebook} ... >Gỡ kết nối</button> */}
+                        {/* <button onClick={handleDisconnectFacebook} ...>Gỡ kết nối</button> */}
                     </div>
                     <Poster session={session} />
                 </div>
@@ -54,7 +58,8 @@ export default function UserDashboard({ session }: { session: Session }) {
                     <h2 className="text-xl font-semibold mb-2">Bắt đầu nào!</h2>
                     <p className="mb-6 text-gray-600">Bạn cần kết nối tài khoản Facebook của mình để có thể lấy danh sách Fanpage và đăng bài.</p>
                     <div className="max-w-xs mx-auto">
-                       <FacebookConnectButton onSuccess={checkConnection} />
+                       {/* Nút bấm bây giờ không cần callback nữa */}
+                       <FacebookConnectButton />
                     </div>
                 </div>
             )}

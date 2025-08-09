@@ -1,43 +1,45 @@
 "use client";
 import { useState, useEffect } from "react";
+import { signIn } from "next-auth/react";
 import type { Session } from "next-auth";
 import Poster from "./Poster";
 import axios from 'axios';
-import FacebookConnectButton from "./FacebookConnectButton";
+
+interface ConnectedAccount {
+    provider: string;
+}
 
 export default function UserDashboard({ session }: { session: Session }) {
     const [hasFacebookConnection, setHasFacebookConnection] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [statusMessage, setStatusMessage] = useState('');
 
-    // useEffect bây giờ phụ thuộc vào `session`.
-    // Mỗi khi `update()` được gọi và session thay đổi, hàm này sẽ chạy lại.
-    useEffect(() => {
-        const checkConnection = async () => {
-            setIsLoading(true);
-            try {
-                const res = await axios.get('/api/user/accounts');
-                setHasFacebookConnection(res.data.isConnected);
-            } catch (error) {
-                console.error("Lỗi khi kiểm tra kết nối Facebook", error);
-                setHasFacebookConnection(false);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        
-        if (session) {
-          checkConnection();
+    const checkConnection = async () => {
+        setIsLoading(true);
+        try {
+            const res = await axios.get('/api/user/accounts');
+            const facebookAccount = res.data.find((acc: ConnectedAccount) => acc.provider === 'facebook');
+            setHasFacebookConnection(!!facebookAccount);
+        } catch (error) {
+            console.error("Lỗi khi kiểm tra kết nối Facebook", error);
+            setHasFacebookConnection(false);
+        } finally {
+            setIsLoading(false);
         }
-    }, [session]); // QUAN TRỌNG: Thêm `session` vào dependency array
+    };
 
+    useEffect(() => {
+        checkConnection();
+    }, []);
+
+    // === HÀM MỚI ĐỂ GỠ KẾT NỐI ===
     const handleDisconnectFacebook = async () => {
-        if (window.confirm("Bạn có chắc chắn muốn gỡ kết nối tài khoản Facebook?")) {
+        if (window.confirm("Bạn có chắc chắn muốn gỡ kết nối tài khoản Facebook hiện tại? Bạn sẽ cần kết nối lại để tiếp tục sử dụng dịch vụ.")) {
             setStatusMessage("Đang gỡ kết nối...");
             try {
                 await axios.delete('/api/user/accounts');
                 setStatusMessage("Gỡ kết nối thành công!");
-                setHasFacebookConnection(false);
+                setHasFacebookConnection(false); // Cập nhật lại giao diện ngay lập tức
             } catch (err: any) {
                 setStatusMessage(err.response?.data?.error || "Gỡ kết nối thất bại.");
             }
@@ -65,16 +67,18 @@ export default function UserDashboard({ session }: { session: Session }) {
                             Gỡ kết nối
                         </button>
                     </div>
-                    {/* Component Poster của bạn sẽ được hiển thị ở đây */}
                     <Poster session={session} />
                 </div>
             ) : (
                 <div className="text-center p-8 mt-10 bg-white border-2 border-dashed rounded-lg">
                     <h2 className="text-xl font-semibold mb-2">Bắt đầu nào!</h2>
                     <p className="mb-6 text-gray-600">Bạn cần kết nối tài khoản Facebook của mình để có thể lấy danh sách Fanpage và đăng bài.</p>
-                    <div className="max-w-xs mx-auto">
-                       <FacebookConnectButton />
-                    </div>
+                    <button
+                        onClick={() => signIn("facebook")}
+                        className="px-6 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        Kết nối với Facebook
+                    </button>
                 </div>
             )}
         </div>

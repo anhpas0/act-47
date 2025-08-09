@@ -3,18 +3,26 @@
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import clientPromise from "@/lib/mongodb";
 import CredentialsProvider from "next-auth/providers/credentials";
+import FacebookProvider from "next-auth/providers/facebook"; // Thêm lại FacebookProvider
 import bcrypt from "bcryptjs";
 import { AuthOptions } from "next-auth";
 import { MongoClient } from "mongodb";
 
-// Định nghĩa các tùy chọn xác thực cho NextAuth
 export const authOptions: AuthOptions = {
   // Sử dụng MongoDBAdapter để NextAuth tự động quản lý dữ liệu trong MongoDB
   adapter: MongoDBAdapter(clientPromise as Promise<MongoClient>),
 
   // Cấu hình các "nhà cung cấp" dịch vụ xác thực
   providers: [
-    // Chỉ còn lại CredentialsProvider cho việc đăng nhập username/password
+    // 1. Nhà cung cấp Facebook: Dùng cho việc kết nối tài khoản
+    FacebookProvider({
+      clientId: process.env.FACEBOOK_APP_ID as string,
+      clientSecret: process.env.FACEBOOK_APP_SECRET as string,
+      // Vẫn giữ lại scope tùy chỉnh để tránh lỗi "Invalid Scopes: email"
+      scope: 'public_profile,pages_show_list,pages_manage_posts,pages_read_engagement',
+    }),
+
+    // 2. Nhà cung cấp Credentials: Dùng cho việc đăng nhập username/password
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -22,79 +30,70 @@ export const authOptions: AuthOptions = {
         password: { label: "Mật khẩu", type: "password" },
       },
       async authorize(credentials) {
-        // SỬA LỖI: Kiểm tra xem credentials có tồn tại và có chứa username/password không
-        // trước khi truy cập chúng.
         if (!credentials?.username || !credentials?.password) {
-            return null;
+          return null;
         }
 
         const client = await clientPromise;
         const db = client.db();
-        
-        // Bây giờ TypeScript đã biết chắc chắn credentials.username tồn tại
         const user = await db.collection("users").findOne({ username: credentials.username });
 
-        // Nếu không tìm thấy user, trả về null
         if (!user) {
           return null;
         }
 
-        // Nếu mật khẩu đúng, tiếp tục kiểm tra
         if (bcrypt.compareSync(credentials.password, user.password as string)) {
-          
           const now = new Date();
           
-          // Logic kiểm tra hạn sử dụng gói cước
           if (user.plan !== 'lifetime' && user.planExpiresAt && new Date(user.planExpiresAt) < now) {
-              if (user.status !== 'inactive') {
-                  await db.collection("users").updateOne({ _id: user._id }, { $set: { status: 'inactive' } });
-              }
-              throw new Error("Gói cước của bạn đã hết hạn. Vui lòng liên hệ Admin.");
+            if (user.status !== 'inactive') {
+              await db.collection("users").updateOne({ _id: user._id }, { $set: { status: 'inactive' } });
+            }
+            throw new Error("Gói cước của bạn đã hết hạn. Vui lòng liên hệ Admin.");
           }
           
-          // Logic kiểm tra trạng thái chung của tài khoản
           if (user.status !== 'active') {
             throw new Error("Tài khoản chưa được kích hoạt hoặc đã bị khóa.");
           }
-
-          // Nếu mọi thứ đều ổn, trả về thông tin user
+          
           return { id: user._id.toString(), name: user.username, role: user.role };
         }
         
-        // Nếu mật khẩu sai, trả về null
         return null;
       },
     }),
   ],
 
-  session: { strategy: "jwt" },
+  // Không chỉ định 'strategy'. Để NextAuth tự dùng 'database' khi có adapter.
   
-  // Callbacks để truyền thêm dữ liệu vào session
+  // Callbacks để tùy chỉnh session
   callbacks: {
-    async jwt({ token, user }) {
-      // Khi đăng nhập, thêm 'role' và 'id' vào JWT
-      if (user) {
-        token.role = (user as any).role;
-        token.id = user.id;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      // Thêm 'role' và 'id' từ JWT vào đối tượng session để sử dụng ở client và server
+    // Với strategy "database", callback 'session' nhận được 'user' từ database
+    async session({ session, user }) {
       if (session.user) {
-        (session.user as any).id = token.id;
-        (session.user as any).role = token.role;
+        (session.user as any).id = user.id; // Lấy ID từ đối tượng user của DB
+        (session.user as any).role = (user as any).role; // Lấy role từ đối tượng user của DB
       }
       return session;
     },
+    // JWT callback vẫn chạy trước và có thể hữu ích để xử lý token từ provider
+    async jwt({ token, user, account }) {
+        if (user) {
+            token.id = user.id;
+            token.role = (user as any).role;
+        }
+        if (account) {
+            // Lưu access_token của Facebook vào token để có thể dùng sau nếu cần
+            token.accessToken = account.access_token;
+        }
+        return token;
+    }
   },
 
-  // Khóa bí mật
   secret: process.env.NEXTAUTH_SECRET,
-
-  // Tùy chỉnh các trang
+  
   pages: { 
     signIn: '/login', 
-    error: '/login' // Chuyển về trang login nếu có lỗi (ví dụ: tài khoản hết hạn)
+    error: '/login' 
   }
 };

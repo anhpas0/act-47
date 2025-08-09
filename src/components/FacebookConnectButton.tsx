@@ -1,46 +1,62 @@
 "use client";
 import axios from 'axios';
 import { useState } from 'react';
-import { useSession } from 'next-auth/react'; // Import useSession
+import { useSession } from 'next-auth/react';
 
 declare global { interface Window { FB: any; } }
 
-// Component này bây giờ không cần callback onSuccess nữa
 export default function FacebookConnectButton() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
-    const { update } = useSession(); // Lấy hàm update từ useSession
+    const { update } = useSession();
 
-    const handleConnect = () => {
+    // Hàm này sẽ bọc FB.login trong một Promise
+    const facebookLoginPromise = (): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            // Callback đồng bộ được truyền cho FB.login
+            const loginCallback = (response: any) => {
+                if (response.authResponse) {
+                    // Nếu thành công, resolve Promise với accessToken
+                    resolve(response.authResponse.accessToken);
+                } else {
+                    // Nếu thất bại, reject Promise với thông báo lỗi
+                    reject('Kết nối Facebook đã bị hủy bởi người dùng.');
+                }
+            };
+
+            window.FB.login(loginCallback, { 
+                scope: 'public_profile,pages_show_list,pages_manage_posts,pages_read_engagement' 
+            });
+        });
+    };
+
+    const handleConnect = async () => {
         setIsLoading(true);
         setError('');
+
         if (typeof window.FB === 'undefined' || !window.FB) {
             setError('SDK chưa tải xong. Vui lòng thử lại sau giây lát.');
             setIsLoading(false);
             return;
         }
-        window.FB.login(async (response: any) => {
-            if (response.authResponse) {
-                const accessToken = response.authResponse.accessToken;
-                try {
-                    // Gửi token về backend để liên kết tài khoản
-                    await axios.post('/api/user/link-facebook', { accessToken });
-                    
-                    // === SỬA ĐỔI QUAN TRỌNG NHẤT ===
-                    // Sau khi liên kết thành công, gọi hàm update() của NextAuth
-                    // để buộc nó phải làm mới lại session và JWT.
-                    await update();
-                    
-                    // Không cần làm gì thêm, session mới sẽ tự động kích hoạt
-                    // re-render ở UserDashboard.
-                } catch (err: any) {
-                    setError(err.response?.data?.error || 'Lỗi khi liên kết tài khoản.');
-                }
-            } else {
-                setError('Kết nối Facebook đã bị hủy.');
-            }
+
+        try {
+            // === SỬA ĐỔI QUAN TRỌNG NHẤT LÀ Ở ĐÂY ===
+            // 1. Chờ cho Promise của FB.login hoàn thành
+            const accessToken = await facebookLoginPromise();
+
+            // 2. Nếu thành công, tiếp tục xử lý logic bất đồng bộ
+            await axios.post('/api/user/link-facebook', { accessToken });
+
+            // 3. Cập nhật session để làm mới giao diện
+            await update();
+
+        } catch (err: any) {
+            // Bắt lỗi từ cả Promise (khi người dùng hủy) và từ axios
+            setError(typeof err === 'string' ? err : 'Lỗi khi liên kết tài khoản.');
+        } finally {
             setIsLoading(false);
-        }, { scope: 'public_profile,pages_show_list,pages_manage_posts,pages_read_engagement' });
+        }
     };
 
     return (

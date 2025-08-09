@@ -10,7 +10,8 @@ export default function UserDashboard({ session }: { session: Session }) {
     const [isLoading, setIsLoading] = useState(true);
     const [statusMessage, setStatusMessage] = useState('');
 
-    // useEffect bây giờ sẽ tự động chạy lại khi session được cập nhật từ nút bấm
+    // useEffect bây giờ phụ thuộc vào `session`.
+    // Mỗi khi `update()` được gọi và session thay đổi, hàm này sẽ chạy lại.
     useEffect(() => {
         const checkConnection = async () => {
             setIsLoading(true);
@@ -25,14 +26,22 @@ export default function UserDashboard({ session }: { session: Session }) {
             }
         };
         
-        // Chỉ chạy khi có session
         if (session) {
           checkConnection();
         }
-    }, [session]); // Phụ thuộc vào session
+    }, [session]); // QUAN TRỌNG: Thêm `session` vào dependency array
 
     const handleDisconnectFacebook = async () => {
-        // ... (Hàm này giữ nguyên không đổi)
+        if (window.confirm("Bạn có chắc chắn muốn gỡ kết nối tài khoản Facebook?")) {
+            setStatusMessage("Đang gỡ kết nối...");
+            try {
+                await axios.delete('/api/user/accounts');
+                setStatusMessage("Gỡ kết nối thành công!");
+                setHasFacebookConnection(false);
+            } catch (err: any) {
+                setStatusMessage(err.response?.data?.error || "Gỡ kết nối thất bại.");
+            }
+        }
     };
 
     if (isLoading) {
@@ -49,8 +58,14 @@ export default function UserDashboard({ session }: { session: Session }) {
                 <div>
                     <div className="p-4 mb-6 bg-green-50 border-l-4 border-green-500 rounded-r-lg flex justify-between items-center">
                         <p className="font-semibold text-green-800">Đã kết nối với tài khoản Facebook.</p>
-                        {/* <button onClick={handleDisconnectFacebook} ...>Gỡ kết nối</button> */}
+                        <button 
+                            onClick={handleDisconnectFacebook}
+                            className="text-xs text-red-600 hover:text-red-800 hover:underline"
+                        >
+                            Gỡ kết nối
+                        </button>
                     </div>
+                    {/* Component Poster của bạn sẽ được hiển thị ở đây */}
                     <Poster session={session} />
                 </div>
             ) : (
@@ -58,7 +73,6 @@ export default function UserDashboard({ session }: { session: Session }) {
                     <h2 className="text-xl font-semibold mb-2">Bắt đầu nào!</h2>
                     <p className="mb-6 text-gray-600">Bạn cần kết nối tài khoản Facebook của mình để có thể lấy danh sách Fanpage và đăng bài.</p>
                     <div className="max-w-xs mx-auto">
-                       {/* Nút bấm bây giờ không cần callback nữa */}
                        <FacebookConnectButton />
                     </div>
                 </div>

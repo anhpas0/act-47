@@ -27,7 +27,8 @@ export default function Poster({ session }: { session: Session }) {
   // States cho các chức năng AI
   const [prompt, setPrompt] = useState(''); // Prompt để tạo ảnh
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState(''); // State cho nội dung cuối cùng
+  const [suggestedDescriptions, setSuggestedDescriptions] = useState<string[]>([]); // State mới cho các gợi ý
   const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
   const [textPrompt, setTextPrompt] = useState(''); // Prompt để tạo mô tả từ text
 
@@ -101,8 +102,16 @@ export default function Poster({ session }: { session: Session }) {
         setImagePreviews([]);
         setSelectedImageIndex(0);
         setStatus("✅ Đã tạo ảnh thành công!");
-    } catch (error) { setStatus("❌ Lỗi khi tạo ảnh. Vui lòng thử lại."); }
+    } catch (error) { setStatus("❌ Lỗi khi tạo ảnh. Có thể bạn đã hết tín dụng OpenAI."); }
     finally { setIsGeneratingImage(false); }
+  };
+
+  const parseAndCleanSuggestions = (rawText: string): string[] => {
+    return rawText
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.startsWith('Gợi ý mô tả'))
+      .map(line => line.replace(/Gợi ý mô tả \d+:/, '').trim());
   };
 
   const handleGenerateDescriptionFromImage = async () => {
@@ -123,12 +132,11 @@ export default function Poster({ session }: { session: Session }) {
     const formData = new FormData();
     formData.append('image', imageToSend);
     try {
-        const res = await axios.post('/api/poster/generate-description', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        const suggestions = res.data.description.split('\n').filter((line: string) => line.trim().startsWith('Gợi ý mô tả'));
-        setDescription(suggestions.join('\n'));
-        setStatus("✅ Đã tạo mô tả thành công!");
+        const res = await axios.post('/api/poster/generate-description', formData);
+        const cleanedSuggestions = parseAndCleanSuggestions(res.data.description);
+        setSuggestedDescriptions(cleanedSuggestions);
+        if (cleanedSuggestions.length > 0) setDescription(cleanedSuggestions[0]);
+        setStatus("✅ Đã tạo mô tả thành công! Chọn một gợi ý hoặc chỉnh sửa bên dưới.");
     } catch (error) { setStatus("❌ Lỗi khi tạo mô tả từ ảnh."); }
     finally { setIsGeneratingDesc(false); }
   };
@@ -138,13 +146,11 @@ export default function Poster({ session }: { session: Session }) {
     setIsGeneratingDesc(true);
     setStatus("✍️ AI đang viết mô tả TỪ Ý TƯỞNG...");
     try {
-        const res = await axios.post('/api/poster/generate-description', 
-            { prompt_text: textPrompt },
-            { headers: { 'Content-Type': 'application/json' } }
-        );
-        const suggestions = res.data.description.split('\n').filter((line: string) => line.trim().startsWith('Gợi ý mô tả'));
-        setDescription(suggestions.join('\n'));
-        setStatus("✅ Đã tạo mô tả thành công!");
+        const res = await axios.post('/api/poster/generate-description', { prompt_text: textPrompt });
+        const cleanedSuggestions = parseAndCleanSuggestions(res.data.description);
+        setSuggestedDescriptions(cleanedSuggestions);
+        if (cleanedSuggestions.length > 0) setDescription(cleanedSuggestions[0]);
+        setStatus("✅ Đã tạo mô tả thành công! Chọn một gợi ý hoặc chỉnh sửa bên dưới.");
     } catch (error) { setStatus("❌ Lỗi khi tạo mô tả từ ý tưởng."); }
     finally { setIsGeneratingDesc(false); }
   };
@@ -211,7 +217,7 @@ export default function Poster({ session }: { session: Session }) {
           <summary className="flex justify-between items-center font-semibold cursor-pointer list-none">
             <h2 className="text-xl text-gray-900">Cài đặt Fanpage & Footer</h2>
             <div className="flex items-center">
-              <span className="text-sm text-blue-600 mr-2 group-open:hidden">Nhấn để tạo footer</span>
+              <span className="text-sm text-blue-600 mr-2 group-open:hidden">Nhấn để mở rộng</span>
               <span className="text-sm text-gray-500 mr-2 hidden group-open:inline">Nhấn để thu gọn</span>
               <svg className="w-5 h-5 text-gray-500 transition-transform duration-300 group-open:rotate-180" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -320,11 +326,32 @@ export default function Poster({ session }: { session: Session }) {
                                     <button type="button" onClick={handleGenerateDescriptionFromText} disabled={isGeneratingDesc} className="px-4 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:bg-green-300">Tạo</button>
                                 </div>
                             </div>
+
+                            <h3 className="font-semibold text-gray-800 pt-4">Các gợi ý từ AI (Nhấn để chọn)</h3>
+                            <div className="space-y-3">
+                                {isGeneratingDesc ? (
+                                    <div className="p-4 bg-gray-100 rounded-md text-center animate-pulse">Đang tạo gợi ý...</div>
+                                ) : suggestedDescriptions.length > 0 ? (
+                                    suggestedDescriptions.map((suggestion, index) => (
+                                        <div 
+                                            key={index} 
+                                            onClick={() => setDescription(suggestion)}
+                                            className="p-4 bg-gray-50 rounded-md border-2 border-transparent hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-all"
+                                        >
+                                            <p className="text-sm text-gray-700">{suggestion}</p>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="p-4 bg-gray-100 rounded-md text-center text-gray-500">
+                                        Chưa có gợi ý nào.
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         <div className="space-y-4">
                             <h3 className="font-semibold text-gray-800">Nội dung bài viết (Chỉnh sửa tại đây)</h3>
-                            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Mô tả sẽ được tạo và hiển thị ở đây..." rows={20} className="w-full p-2 border rounded-md bg-white"/>
+                            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Chọn một gợi ý hoặc tự viết nội dung của bạn ở đây..." rows={20} className="w-full p-3 border rounded-md bg-white focus:ring-2 focus:ring-blue-500"/>
                         </div>
                     </div>
                 </div>
